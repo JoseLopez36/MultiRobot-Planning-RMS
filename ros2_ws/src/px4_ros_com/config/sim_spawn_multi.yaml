@@ -1,0 +1,17 @@
+vehicles:
+  - name: uav1
+    instance: 1
+    model: gz_x500_mono_cam_down
+    pose: "-11,8,0.0,0.0"
+    autostart: 4014
+  - name: uav2
+    instance: 2
+    model: gz_x500_mono_cam_down
+    pose: "0,0,0.0,0.0"
+    autostart: 4014
+  - name: uav3
+    instance: 3
+    model: gz_x500_mono_cam_down
+    pose: "-4,5,0.0,0.0"
+    autostart: 4014
+
