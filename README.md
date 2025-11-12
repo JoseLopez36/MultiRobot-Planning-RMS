@@ -16,7 +16,7 @@ Este repositorio contiene la implementación de un sistema de planificación mul
 ## 🚀 Instalación
 
 ### 1. Clonar este repositorio
-En cualquier carpeta accesible:
+En cualquier carpeta:
 ```bash
 git clone https://github.com/JoseLopez36/MultiRobot-Planning-RMS.git
 ```
@@ -36,6 +36,10 @@ git clone https://github.com/JoseLopez36/MultiRobot-Planning-RMS.git
 ### 4. Clonar y compilar este repositorio dentro del contenedor
 Una vez en el contenedor:
 ```bash
+# Preparar el volumen compartido
+sudo chown -R user:user ~/shared_volume
+cd ~/shared_volume
+
 # Clonar repositorio
 git clone https://github.com/JoseLopez36/MultiRobot-Planning-RMS.git
 
@@ -43,20 +47,11 @@ git clone https://github.com/JoseLopez36/MultiRobot-Planning-RMS.git
 cd ~/shared_volume/MultiRobot-Planning-RMS/ros2_ws/
 colcon build
 source install/setup.bash
-
-# Compilar mensajes del Plugin UWB-Beacon
-cd ~/shared_volume/MultiRobot-Planning-RMS/gz_px4/gz_uwb_beacon_msgs
-colcon build
-source install/setup.bash
-
-# Compilar Plugin UWB-Beacon
-cd ~/shared_volume/MultiRobot-Planning-RMS/gz_px4/gz_uwb_beacon_plugin
-colcon build
-source install/setup.bash
 ```
 
 ### 5. Clonar PX4 Autopilot dentro del contenedor
 ```bash
+cd ~/shared_volume
 git clone https://github.com/PX4/PX4-Autopilot.git --recursive
 cd PX4-Autopilot/
 git checkout v1.15.0
@@ -78,21 +73,22 @@ cp -r ~/shared_volume/MultiRobot-Planning-RMS/gz_px4/airframes ~/shared_volume/P
 
 # Copiar CMakeLists de gz bridge
 cp ~/shared_volume/MultiRobot-Planning-RMS/gz_px4/CMakeLists.txt ~/shared_volume/PX4-Autopilot/src/modules/simulation/gz_bridge
+
+# Compilar PX4 SITL
+cd ~/shared_volume/PX4-Autopilot/
+make px4_sitl
 ```
 
 ## 🎮 Uso
 
-### 1. Configurar variables de entorno del Plugin de Gazebo
+### 1. Iniciar simulación de Gazebo con PX4 Autopilot
 ```bash
-export GZ_SIM_SYSTEM_PLUGIN_PATH=$GZ_SIM_SYSTEM_PLUGIN_PATH:/home/user/shared_volume/MultiRobot-Planning-RMS/gz_px4/gz_uwb_beacon_plugin/install/gz_uwb_beacon_plugin/lib
+PX4_SYS_AUTOSTART=4001 PX4_SIM_MODEL=gz_x500_mod PX4_GZ_WORLD=warehouse ./build/px4_sitl_default/bin/px4 -i 1
 ```
 
-> **Importante**: Esto es necesario para que Gazebo pueda encontrar el Plugin.
-
-### 2. Iniciar simulación de Gazebo con PX4 Autopilot
+### 2. Iniciar sucesivas simulaciones
 ```bash
-cd ~/shared_volume/PX4-Autopilot/
-make px4_sitl gz_x500_mod_warehouse
+PX4_GZ_STANDALONE=1 PX4_SYS_AUTOSTART=4001 PX4_GZ_MODEL_POSE="0,1" PX4_SIM_MODEL=gz_x500_mod PX4_GZ_WORLD=warehouse ./build/px4_sitl_default/bin/px4 -i 2
 ```
 
 > **Nota**: "warehouse" puede sustituirse por otros mundos disponibles como "default" o "lawn".
@@ -102,18 +98,4 @@ make px4_sitl gz_x500_mod_warehouse
 MicroXRCEAgent udp4 -p 8888
 ```
 
-> **Nota**: Esto conecta los mensajes de PX4 con ROS2, haciendo accesibles dichos mensajes en los nodos del paquete principal de ROS2.
-
-### 4. Iniciar el paquete de localización EIF
-```bash
-cd ~/shared_volume/MultiRobot-Planning-RMS/ros2_ws/
-source install/setup.bash
-ros2 launch multi_robot_planning_rms_pkg run.launch.py
-```
-
-### 5. (Opcional) Iniciar RViz2
-```bash
-cd ~/shared_volume/MultiRobot-Planning-RMS/ros2_ws/
-source install/setup.bash
-ros2 launch multi_robot_planning_rms_pkg rviz.launch.py
-```
+> **Nota**: Esto conecta los mensajes de PX4 con ROS2, haciendo accesibles dichos mensajes en los nodos del paquete principal de ROS2. Se conecta a todas las instancias de PX4 existentes.

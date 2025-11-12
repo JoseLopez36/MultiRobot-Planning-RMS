@@ -28,7 +28,7 @@ else
         --env="QT_X11_NO_MITSHM=1" \
         -v $X11_SOCKET:$X11_SOCKET:ro \
         -v /dev/dri:/dev/dri\
-        --volume="$WORKSPACE_PATH:/home/user/shared_volume" \
+        --volume="$WORKSPACE_PATH:/home/user/shared_volume:rw" \
         --volume="/dev/input:/dev/input" \
         --volume="$XAUTH:$XAUTH" \
         -env="XAUTHORITY=$XAUTH" \
