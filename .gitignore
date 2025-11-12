@@ -1,0 +1,54 @@
+# ROS2 workspace artifacts
+**/build/
+**/install/
+**/log/
+
+# IDE and editor files
+.cursor/
+.vscode/
+.idea/
+*.sublime-*
+*.code-workspace
+*.swp
+*~
+.*.swp
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Python
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+*.so
+*.egg
+*.egg-info/
+dist/
+*.whl
+.venv/
+venv/
+env/
+ENV/
+
+# Gazebo
+~/.gazebo/
+*.gazebo
+
+# PX4
+*.px4log
+
+# Docker
+*.log
+
+# Build artifacts
+*.o
+*.a
+*.dylib
+*.dll
+
+# Temporary files
+*.tmp
+*.bak
+*.cache

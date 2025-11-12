@@ -1,0 +1,23 @@
+<?xml version="1.0" ?>
+<sdf version="1.6">
+  <model name="uwb_beacon">
+    <link name="uwb_beacon_link">
+      <collision name="uwb_beacon_collision">
+        <pose>0 0 0 3.14159265359 0 -1.570796</pose>
+        <geometry>
+          <mesh>
+            <uri>meshes/COLLISION-BlueView-M450.dae</uri>
+          </mesh>
+        </geometry>
+      </collision>
+      <visual name="visual">
+        <pose>0 0 0 3.14159265359 0 -1.570796</pose>
+        <geometry>
+          <mesh>
+            <uri>meshes/BlueView-M450.dae</uri>
+          </mesh>
+        </geometry>
+      </visual>
+    </link>
+  </model>
+</sdf>

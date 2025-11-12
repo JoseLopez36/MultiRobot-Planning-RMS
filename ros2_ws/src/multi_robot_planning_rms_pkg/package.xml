@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>multi_robot_planning_rms_pkg</name>
+  <version>1.0.0</version>
+  <description>
+    Paquete principal para el sistema de planificación multi-robot
+  </description>
+  <maintainer email="josloprui6@alum.us.es">Daniel García Burgos, Hongfan Yang, José Antonio García Campanario, José Manuel Parejo Alonso, José Francisco López Ruiz</maintainer>
+  <license>TODO: License declaration</license>
+
+  <depend>rclpy</depend>
+
+  <!-- Dependencias de tf2 -->
+  <depend>tf2</depend>
+  <depend>tf2_ros</depend>
+  <depend>tf2_geometry_msgs</depend>
+
+  <!-- Dependencias de mensajes custom -->
+  <depend>multi_robot_planning_rms_msgs</depend>
+  <depend>px4_msgs</depend>
+  
+  <exec_depend>ros2launch</exec_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

@@ -1,0 +1,6 @@
+/**:
+  ros__parameters:
+    filter_update_rate: 10.0    # Hz  
+    valid_measurement_threshold: 0.15  # s
+    initial_covariance: 100.0   # m
+    

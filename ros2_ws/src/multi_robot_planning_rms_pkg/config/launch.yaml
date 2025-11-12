@@ -1,0 +1,12 @@
+# Node launch configuration
+# Set to [enable, log_level]
+# Enable: true launches the node, false does not
+# Log levels: debug, info, warn, error, fatal
+
+drone_control: [true, 'error']
+tf_manager: [true, 'error']
+visualization: [false, 'error']
+EIF_filter: [false, 'info']
+EIF_filter_descentralized: [true, 'info']
+
+rosbag: true
