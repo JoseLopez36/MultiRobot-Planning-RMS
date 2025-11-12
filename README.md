@@ -105,3 +105,40 @@ MicroXRCEAgent udp4 -p 8888
 ```bash
 ~/shared_volume/MultiRobot-Planning-RMS/tools/launch_px4_instances.py 2
 ```
+
+> **Nota**: Esto ejecuto todo lo anterior y, además, activa control offboard en cada instancia.
+
+## 🛠️ Herramientas y Scripts
+
+### Scripts Docker
+- **`docker/build.sh`**: Compila la imagen Docker con ROS2 Humble, Gazebo Garden y herramientas de desarrollo PX4.
+- **`docker/start.sh`**: Inicia el contenedor Docker y crea un volumen compartido entre el host y el contenedor.
+- **`docker/kill.sh`**: Detiene y elimina el contenedor Docker en ejecución.
+
+### Herramientas de Lanzamiento
+- **`tools/launch_px4_instances.py`**: Script Python que automatiza el lanzamiento de múltiples instancias de PX4. Lee las posiciones iniciales desde `config/px4_vehicles.yaml`, inicia MicroXRCEAgent y los nodos de control offboard para cada instancia. Maneja la limpieza de procesos al recibir Ctrl+C.
+
+## ⚙️ Configuraciones
+
+### Archivos de Configuración Global
+- **`docker/config.env`**: Variables de entorno para Docker (nombre del contenedor, imagen, configuración de red y rutas del volumen compartido).
+- 
+- **`config/px4_vehicles.yaml`**: Define las posiciones iniciales de los vehículos, configuración de PX4 (autostart, modelo, mundo) y parámetros del agente MicroXRCE-DDS (puerto, protocolo).
+
+### Configuraciones ROS2
+- **`ros2_ws/src/multi_robot_planning_rms_pkg/config/launch.yaml`**: Configuración de lanzamiento que permite habilitar/deshabilitar nodos y ajustar niveles de log (debug, info, warn, error, fatal).
+
+## 📁 Estructura del Proyecto
+
+- **`config/`**: Archivos de configuración global del proyecto.
+- **`docker/`**: Scripts y archivos Dockerfile para el entorno de desarrollo containerizado.
+- **`gz_px4/`**: Integración Gazebo-PX4:
+  - `models/`: Modelos 3D de drones (x500_mod), entorno (Warehouse), estanterías y objetos móviles.
+  - `worlds/`: Archivos de mundo de simulación (warehouse.sdf).
+  - `airframes/`: Configuraciones de aeronaves para PX4.
+- **`ros2_ws/`**: Workspace de ROS2:
+  - `src/multi_robot_planning_rms_msgs/`: Definiciones de mensajes para el proyecto.
+  - `src/multi_robot_planning_rms_pkg/`: Paquete principal con nodos del proyecto.
+  - `src/px4_msgs/`: Definiciones de mensajes de PX4.
+  - `src/px4_ros_com/`: Bridge de comunicación PX4-ROS2 y ejemplos de control offboard.
+- **`tools/`**: Scripts de utilidad y automatización.
