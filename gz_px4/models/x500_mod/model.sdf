@@ -83,12 +83,12 @@
       <publish_nested_model_pose>false</publish_nested_model_pose>
     </plugin>
     <include merge='true'>
-      <uri>model://mono_cam</uri>
+      <uri>model://mono_cam_mod</uri>
       <pose>.12 .03 .242 0 0 0</pose>
     </include>
     <joint name="CameraJoint" type="fixed">
       <parent>base_link</parent>
-      <child>mono_cam/base_link</child>
+      <child>mono_cam_mod/base_link</child>
       <pose relative_to="base_link">.12 .03 .242 0 0 0</pose>
     </joint>
   </model>
