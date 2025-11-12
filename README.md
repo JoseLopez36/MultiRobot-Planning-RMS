@@ -79,7 +79,7 @@ cd ~/shared_volume/PX4-Autopilot/
 make px4_sitl
 ```
 
-## 🎮 Uso
+## 🎮 Lanzar instancias de PX4 (sin script)
 
 ### 1. Iniciar simulación de Gazebo con PX4 Autopilot
 ```bash
@@ -99,3 +99,9 @@ MicroXRCEAgent udp4 -p 8888
 ```
 
 > **Nota**: Esto conecta los mensajes de PX4 con ROS2, haciendo accesibles dichos mensajes en los nodos del paquete principal de ROS2. Se conecta a todas las instancias de PX4 existentes.
+
+## 🎮 Lanzar instancias de PX4 (con script)
+
+```bash
+~/shared_volume/MultiRobot-Planning-RMS/tools/launch_px4_instances.py 2
+```
