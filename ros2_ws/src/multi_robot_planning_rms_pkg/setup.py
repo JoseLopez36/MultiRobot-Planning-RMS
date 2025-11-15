@@ -28,6 +28,7 @@ setup(
             'visualization_node = multi_robot_planning_rms_pkg.visualization_node:main',
             'EIF_filter_node = multi_robot_planning_rms_pkg.EIF_filter_node:main',
             'EIF_filter_descentralized_node = multi_robot_planning_rms_pkg.EIF_filter_descentralized_node:main',
+            'darp_node = multi_robot_planning_rms_pkg.darp_node:main',
         ],
     },
 )
