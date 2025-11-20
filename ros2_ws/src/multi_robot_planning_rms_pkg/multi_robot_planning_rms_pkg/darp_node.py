@@ -3,8 +3,8 @@ import os
 import sys
 import numpy as np
 from rclpy.node import Node
-from darp_msgs.srv import DarpPetition
-from darp_msgs.msg import Trajectory2D
+from multi_robot_planning_rms_msgs.srv import DarpPetition
+from multi_robot_planning_rms_msgs.msg import Trajectory2D
 from vision_msgs.msg import Point2D
 
 scripts_path = os.path.join(os.path.dirname(__file__), "..", "scripts")
