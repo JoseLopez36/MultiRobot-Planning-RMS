@@ -9,7 +9,7 @@ initial_positions:
 px4_config:
   autostart: 4001
   model: gz_x500_mod
-  world: warehouse
+  world: default
   px4_binary_path: ~/shared_volume/PX4-Autopilot/build/px4_sitl_default/bin/px4
 
 # Agent configuration

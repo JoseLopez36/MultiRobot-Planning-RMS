@@ -2,7 +2,7 @@
 
 """
 Launch n PX4 instances with initial positions from config file
-Usage: ./launch_px4_instances.py [num_vehicles]
+Usage: python3 launch_px4_instances.py [num_vehicles]
 """
 
 import os
