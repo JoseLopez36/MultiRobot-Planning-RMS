@@ -1,0 +1,13 @@
+coordinator_node:
+  ros__parameters:
+    uav_ids: ["px4_1", "px4_2"]
+    target_altitude: 5.0
+    acceptance_radius: 0.5
+    min_x: -5
+    max_x: 5
+    min_y: -5
+    max_y: 5
+    initial_positions_x: [0.0, 5.0]
+    initial_positions_y: [0.0, 5.0]
+    obstacle_points_x: [1.0, 2.0, -1.0]
+    obstacle_points_y: [1.0, 2.0, -1.0]

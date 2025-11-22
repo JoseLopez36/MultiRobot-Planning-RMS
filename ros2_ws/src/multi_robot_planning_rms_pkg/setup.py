@@ -23,12 +23,8 @@ setup(
     license='TODO: License declaration',
     entry_points={
         'console_scripts': [
-            'drone_control_node = multi_robot_planning_rms_pkg.drone_control_node:main',
-            'tf_manager_node = multi_robot_planning_rms_pkg.tf_manager_node:main',
-            'visualization_node = multi_robot_planning_rms_pkg.visualization_node:main',
-            'EIF_filter_node = multi_robot_planning_rms_pkg.EIF_filter_node:main',
-            'EIF_filter_descentralized_node = multi_robot_planning_rms_pkg.EIF_filter_descentralized_node:main',
             'darp_node = multi_robot_planning_rms_pkg.darp_node:main',
+            'coordinator_node = multi_robot_planning_rms_pkg.coordinator_node:main'
         ],
     },
 )

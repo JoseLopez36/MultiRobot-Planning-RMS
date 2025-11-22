@@ -103,6 +103,7 @@ MicroXRCEAgent udp4 -p 8888
 ## 🎮 Lanzar instancias de PX4 (con script)
 
 ```bash
+source ~/shared_volume/MultiRobot-Planning-RMS/ros2_ws/install/setup.bash
 ~/shared_volume/MultiRobot-Planning-RMS/tools/launch_px4_instances.py 2
 ```
 

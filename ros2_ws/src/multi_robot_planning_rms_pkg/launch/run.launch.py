@@ -9,8 +9,8 @@ import yaml
 def generate_launch_description():
     # Obtener las rutas a los archivos de configuración
     package_dir = get_package_share_directory('multi_robot_planning_rms_pkg')
-    drone_control_path = os.path.join(package_dir, 'config', 'drone_control.yaml')
-    rosbags_path = os.path.join(package_dir, 'rosbags')
+    darp_path = os.path.join(package_dir, 'config', 'darp.yaml')
+    coordinator_path = os.path.join(package_dir, 'config', 'coordinator.yaml')
 
     # Cargar el archivo de configuración de los nodos
     launch_config_path = os.path.join(package_dir, 'config', 'launch.yaml')
@@ -20,33 +20,36 @@ def generate_launch_description():
     # Obtener las configuraciones de activación de los nodos
     # Establecer valores predeterminados si no están presentes en la configuración
     nodes = {
-        'drone_control': launch.get('drone_control', [True, 'info'])
+        'darp': launch.get('darp', [True, 'info']),
+        'coordinator': launch.get('coordinator', [True, 'info'])
     }
 
     # Inicializar la descripción de la lanzamiento
     ld = LaunchDescription()
 
-    # Condicionalmente agregar el nodo Drone Control
-    if nodes['drone_control'][0]:
+    # Condicionalmente agregar el nodo DARP
+    if nodes['darp'][0]:
         ld.add_action(
             Node(
                 package='multi_robot_planning_rms_pkg',
-                executable='drone_control_node',
-                name='drone_control_node',
+                executable='darp_node',
+                name='darp_node',
                 output='screen',
-                arguments=['--ros-args', '--log-level', nodes['drone_control'][1]],
-                parameters=[drone_control_path]
+                arguments=['--ros-args', '--log-level', nodes['darp'][1]],
+                parameters=[darp_path]
             )
         )
 
-    if launch.get('rosbag', True):
-        date = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        rosbag_name = os.path.join(rosbags_path,f"experimento_{date}")
-        print(rosbag_name)
+    # Condicionalmente agregar el nodo coordinador
+    if nodes['coordinator'][0]:
         ld.add_action(
-            ExecuteProcess(
-                cmd=['ros2','bag','record','-o',rosbag_name, '/ground_truth/vehicle_odom'],
-                output = 'screen'
+            Node(
+                package='multi_robot_planning_rms_pkg',
+                executable='coordinator_node',
+                name='coordinator_node',
+                output='screen',
+                arguments=['--ros-args', '--log-level', nodes['coordinator'][1]],
+                parameters=[coordinator_path]
             )
         )
 
