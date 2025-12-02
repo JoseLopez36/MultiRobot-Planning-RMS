@@ -21,7 +21,8 @@ def generate_launch_description():
     # Establecer valores predeterminados si no están presentes en la configuración
     nodes = {
         'darp': launch.get('darp', [True, 'info']),
-        'coordinator': launch.get('coordinator', [True, 'info'])
+        'coordinator': launch.get('coordinator', [True, 'info']),
+        'px4_transform': launch.get('px4_transform', [True, 'info'])
     }
 
     # Inicializar la descripción de la lanzamiento
@@ -52,5 +53,19 @@ def generate_launch_description():
                 parameters=[coordinator_path]
             )
         )
+
+    # Condicionalmente agregar el nodo de transformacion de PX4
+    if nodes['px4_transform'][0]:
+        ld.add_action(
+            Node(
+                package='multi_robot_planning_rms_pkg',
+                executable='px4_transform_node',
+                name='px4_transform_node',
+                output='screen',
+                arguments=['--ros-args', '--log-level', nodes['px4_transform'][1]],
+                parameters=[coordinator_path]
+            )
+        )
+
 
     return ld

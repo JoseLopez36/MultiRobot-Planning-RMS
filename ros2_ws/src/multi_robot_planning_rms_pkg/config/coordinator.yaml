@@ -11,3 +11,10 @@ coordinator_node:
     initial_positions_y: [0.0, 5.0]
     obstacle_points_x: [1.0, 2.0, -1.0]
     obstacle_points_y: [1.0, 2.0, -1.0]
+
+px4_transform_node:
+  ros__parameters:
+    uav_ids: ["px4_1", "px4_2"]
+    local_frame_origins_x: [0.0, 5.0]
+    local_frame_origins_y: [0.0, 5.0]
+    local_frame_origins_z: [0.0, 0.0]

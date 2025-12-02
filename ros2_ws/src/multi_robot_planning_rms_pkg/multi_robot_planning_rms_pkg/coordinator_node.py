@@ -36,7 +36,7 @@ class CoordinatorNode(Node):
         # Cliente DARP
         self.darp_client = self.create_client(DarpPetition, 'darp_service')
         while not self.darp_client.wait_for_service(timeout_sec=1.0):
-            self.get_logger().info('DARP service not available, waiting again...')
+            self.get_logger().info('Servicio DARP no disponible, esperando de nuevo...')
         
         # QoS para PX4
         qos_profile = QoSProfile(
