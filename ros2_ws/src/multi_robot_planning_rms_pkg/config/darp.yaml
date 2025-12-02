@@ -1,3 +1,0 @@
-darp_node:
-  ros__parameters:
-    example_parameter: "Hello, world!"

@@ -23,8 +23,8 @@ setup(
     license='TODO: License declaration',
     entry_points={
         'console_scripts': [
-            'darp_node = multi_robot_planning_rms_pkg.darp_node:main',
             'coordinator_node = multi_robot_planning_rms_pkg.coordinator_node:main',
+            'darp_node = multi_robot_planning_rms_pkg.darp_node:main',
             'px4_transform_node = multi_robot_planning_rms_pkg.px4_transform_node:main'
         ],
     },

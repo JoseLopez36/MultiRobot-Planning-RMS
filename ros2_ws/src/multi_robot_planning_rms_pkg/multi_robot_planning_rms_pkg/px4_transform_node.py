@@ -16,19 +16,17 @@ class PX4TransformNode(Node):
         self.get_logger().info("Iniciando nodo de gestion de transformaciones de PX4...")
 
         # Obtener parámetros
-        self.declare_parameter('uav_ids', [''])
-        self.declare_parameter('local_frame_origins_x', [0.0])
-        self.declare_parameter('local_frame_origins_y', [0.0])
-        self.declare_parameter('local_frame_origins_z', [0.0])
-        self.uav_ids = self.get_parameter('uav_ids').get_parameter_value().string_array_value
-        local_frame_origins_x = self.get_parameter('local_frame_origins_x').get_parameter_value().double_array_value
-        local_frame_origins_y = self.get_parameter('local_frame_origins_y').get_parameter_value().double_array_value
-        local_frame_origins_z = self.get_parameter('local_frame_origins_z').get_parameter_value().double_array_value
+        self.declare_parameter('agents.ids', [''])
+        self.declare_parameter('agents.initial_positions_x', [0.0])
+        self.declare_parameter('agents.initial_positions_y', [0.0])
+        self.agents_ids = self.get_parameter('agents.ids').get_parameter_value().string_array_value
+        self.initial_positions_x = self.get_parameter('agents.initial_positions_x').get_parameter_value().double_array_value
+        self.initial_positions_y = self.get_parameter('agents.initial_positions_y').get_parameter_value().double_array_value
 
         # Crear diccionario de orígenes de marcos locales
         self.local_frame_origins = {}
-        for i in range(len(self.uav_ids)):
-            self.local_frame_origins[self.uav_ids[i]] = (local_frame_origins_x[i], local_frame_origins_y[i], local_frame_origins_z[i])
+        for i in range(len(self.agents_ids)):
+            self.local_frame_origins[self.agents_ids[i]] = (self.initial_positions_x[i], self.initial_positions_y[i], 0.0)
 
         # Inicializar diccionarios
         self.position_px4_subscribers = {}
@@ -50,43 +48,42 @@ class PX4TransformNode(Node):
         )
 
         # Iterar sobre los UAVs para crear suscriptores y publicadores
-        for uav_id in self.uav_ids:
+        for agent_id in self.agents_ids:
             # Crear suscriptores de PX4
-            self.position_px4_subscribers[uav_id] = self.create_subscription(
+            self.position_px4_subscribers[agent_id] = self.create_subscription(
                 VehicleLocalPosition,
-                f'/{uav_id}/fmu/out/vehicle_local_position',
-                lambda msg, uid=uav_id: self.position_px4_callback(msg, uid),
+                f'/{agent_id}/fmu/out/vehicle_local_position',
+                lambda msg, uid=agent_id: self.position_px4_callback(msg, uid),
                 qos_profile
             )
             # Crear publicadores para PX4
-            self.command_px4_publishers[uav_id] = self.create_publisher(
+            self.command_px4_publishers[agent_id] = self.create_publisher(
                 VehicleCommand,
-                f'/{uav_id}/fmu/in/vehicle_command',
+                f'/{agent_id}/fmu/in/vehicle_command',
                 qos_profile
             )
-            self.trajectory_setpoint_px4_publishers[uav_id] = self.create_publisher(
+            self.trajectory_setpoint_px4_publishers[agent_id] = self.create_publisher(
                 TrajectorySetpoint,
-                f'/{uav_id}/fmu/in/trajectory_setpoint',
+                f'/{agent_id}/fmu/in/trajectory_setpoint',
                 qos_profile
             )
             # Crear suscriptores de ROS2
-            self.trajectory_setpoint_ros2_subscribers[uav_id] = self.create_subscription(
+            self.trajectory_setpoint_ros2_subscribers[agent_id] = self.create_subscription(
                 PointStamped,
-                f'/{uav_id}/control/setpoint',
-                lambda msg, uid=uav_id: self.trajectory_setpoint_ros2_callback(msg, uid),
+                f'/{agent_id}/control/setpoint',
+                lambda msg, uid=agent_id: self.trajectory_setpoint_ros2_callback(msg, uid),
                 qos_profile
             )
             # Crear publicadores para ROS2
-            self.position_ros2_publishers[uav_id] = self.create_publisher(
+            self.position_ros2_publishers[agent_id] = self.create_publisher(
                 PointStamped,
-                f'/{uav_id}/state/position',
+                f'/{agent_id}/state/position',
                 qos_profile
             )
             
-            # Publicar marco local del UAV si está configurado
-            for uav_id in self.uav_ids:
-                origin_x, origin_y, origin_z = self.local_frame_origins[uav_id]
-                self.publish_local_frame(uav_id, origin_x, origin_y, origin_z)
+            # Publicar marco local del UAV
+            origin_x, origin_y, origin_z = self.local_frame_origins[agent_id]
+            self.publish_local_frame(agent_id, origin_x, origin_y, origin_z)
         
         # Publicar marco global
         self.publish_global_frame()
@@ -94,7 +91,7 @@ class PX4TransformNode(Node):
         # Log
         self.get_logger().info("Nodo de gestion de transformaciones de PX4 iniciado")
 
-    def position_px4_callback(self, msg, uav_id):
+    def position_px4_callback(self, msg, agent_id):
         # Validar que la posición sea válida
         if not (msg.xy_valid and msg.z_valid):
             return
@@ -112,7 +109,7 @@ class PX4TransformNode(Node):
         local_enu_z = -local_ned_z  # Up
         
         # Calcular posicion global
-        origin_enu_x, origin_enu_y, origin_enu_z = self.local_frame_origins[uav_id]
+        origin_enu_x, origin_enu_y, origin_enu_z = self.local_frame_origins[agent_id]
         global_enu_x = local_enu_x + origin_enu_x
         global_enu_y = local_enu_y + origin_enu_y
         global_enu_z = local_enu_z + origin_enu_z
@@ -126,12 +123,12 @@ class PX4TransformNode(Node):
         position_msg.point.z = global_enu_z
         
         # Publicar posición en ROS2
-        self.position_ros2_publishers[uav_id].publish(position_msg)
+        self.position_ros2_publishers[agent_id].publish(position_msg)
         
         # Publicar marcos de transformación
-        self.publish_body_frame(uav_id, local_enu_x, local_enu_y, local_enu_z)
+        self.publish_body_frame(agent_id, local_enu_x, local_enu_y, local_enu_z)
 
-    def trajectory_setpoint_ros2_callback(self, msg, uav_id):
+    def trajectory_setpoint_ros2_callback(self, msg, agent_id):
         # Callback para recibir setpoints de ROS2 y transformarlos a PX4
         # Obtener coordenadas ENU (Globales)
         global_enu_x = msg.point.x
@@ -139,7 +136,7 @@ class PX4TransformNode(Node):
         global_enu_z = msg.point.z
         
         # Transformar a local
-        origin_enu_x, origin_enu_y, origin_enu_z = self.local_frame_origins[uav_id]
+        origin_enu_x, origin_enu_y, origin_enu_z = self.local_frame_origins[agent_id]
         local_enu_x = global_enu_x - origin_enu_x
         local_enu_y = global_enu_y - origin_enu_y
         local_enu_z = global_enu_z - origin_enu_z
@@ -152,13 +149,13 @@ class PX4TransformNode(Node):
         # Crear mensaje TrajectorySetpoint para PX4
         setpoint_msg = TrajectorySetpoint()
         setpoint_msg.timestamp = int(self.get_clock().now().nanoseconds / 1000)  # microsegundos
-        setpoint_msg.x = local_ned_x
-        setpoint_msg.y = local_ned_y
-        setpoint_msg.z = local_ned_z
+        setpoint_msg.position[0] = local_ned_x
+        setpoint_msg.position[1] = local_ned_y
+        setpoint_msg.position[2] = local_ned_z
         setpoint_msg.yaw = float('nan')
         
         # Publicar setpoint a PX4
-        self.trajectory_setpoint_px4_publishers[uav_id].publish(setpoint_msg)
+        self.trajectory_setpoint_px4_publishers[agent_id].publish(setpoint_msg)
 
     def publish_global_frame(self):
         # Publicar transformación del frame 'global' (origen)
@@ -184,7 +181,7 @@ class PX4TransformNode(Node):
         # Publicar transformación
         self.static_broadcaster.sendTransform(t)
             
-    def publish_local_frame(self, uav_id, x, y, z):
+    def publish_local_frame(self, agent_id, x, y, z):
         # Publicar transformación del frame 'global' (origen) al frame 'local' (marco local del drone)
         # Crear mensaje de transformación
         t = TransformStamped()
@@ -192,7 +189,7 @@ class PX4TransformNode(Node):
         # Establecer headers
         t.header.stamp = self.get_clock().now().to_msg()
         t.header.frame_id = 'global'
-        t.child_frame_id = f'{uav_id}/local'
+        t.child_frame_id = f'{agent_id}/local'
         
         # Establecer posición relativa al origen
         t.transform.translation.x = x
@@ -208,14 +205,14 @@ class PX4TransformNode(Node):
         # Publicar transformación
         self.static_broadcaster.sendTransform(t)      
 
-    def publish_body_frame(self, uav_id, x, y, z):
+    def publish_body_frame(self, agent_id, x, y, z):
         # Publicar transformación del frame 'local' al frame 'body' (posición y orientación del UAV)
         t = TransformStamped()
         
         # Establecer headers
         t.header.stamp = self.get_clock().now().to_msg()
-        t.header.frame_id = f'{uav_id}/local'
-        t.child_frame_id = f'{uav_id}/body'
+        t.header.frame_id = f'{agent_id}/local'
+        t.child_frame_id = f'{agent_id}/body'
         
         # Establecer posición relativa al marco local
         t.transform.translation.x = float(x)
