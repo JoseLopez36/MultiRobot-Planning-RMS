@@ -1,6 +1,6 @@
 /**/planning_node:
   ros__parameters:
-    example_parameter: "Hello, world!"
+    cell_size: 2.0
 
 /**/darp_node:
   ros__parameters:
@@ -11,13 +11,22 @@
     target_altitude: 5.0
     acceptance_radius: 0.5
 
-/**/px4_transform_node:
-  ros__parameters:
-    example_parameter: "Hello, world!"
-
 /**/visualization_node:
   ros__parameters:
-    markers:
+    # Parámetros de visualización de agentes
+    drones:
+      position_scale: 0.35
+      setpoint_scale: 0.25
+      arrow_width: 0.08
+      label_scale: 0.4
+      z_offset: 0.05
+    # Parámetros de visualización de trayectorias
+    trajectories:
       line_width: 0.075
       point_scale: 0.20
-      alpha: 0.85
+      alpha: 0.5
+    # Parámetros de visualización de zonas
+    zones:
+      cell_size: 2.0
+      fill_alpha: 0.05
+      outline_width: 0.025
