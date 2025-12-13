@@ -1,12 +1,23 @@
-coordinator_node:
+/**/planning_node:
+  ros__parameters:
+    example_parameter: "Hello, world!"
+
+/**/darp_node:
+  ros__parameters:
+    example_parameter: "Hello, world!"
+
+/**/control_node:
   ros__parameters:
     target_altitude: 5.0
     acceptance_radius: 0.5
 
-darp_node:
+/**/px4_transform_node:
   ros__parameters:
     example_parameter: "Hello, world!"
 
-px4_transform_node:
+/**/visualization_node:
   ros__parameters:
-    example_parameter: "Hello, world!"
+    markers:
+      line_width: 0.10
+      point_scale: 0.25
+      alpha: 0.9

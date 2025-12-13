@@ -104,8 +104,10 @@ MicroXRCEAgent udp4 -p 8888
 
 ```bash
 source ~/shared_volume/MultiRobot-Planning-RMS/ros2_ws/install/setup.bash
-~/shared_volume/MultiRobot-Planning-RMS/tools/launch_px4_instances.py 2
+~/shared_volume/MultiRobot-Planning-RMS/tools/launch_px4_instances.py
 ```
+
+**Nota**: Esto ejecuto todo lo anterior y, además, activa control offboard en cada instancia.
 
 ## 🎮 Lanzar nodos de ROS2
 
@@ -114,7 +116,12 @@ source ~/shared_volume/MultiRobot-Planning-RMS/ros2_ws/install/setup.bash
 ros2 launch multi_robot_planning_rms_pkg run.launch.py
 ```
 
-> **Nota**: Esto ejecuto todo lo anterior y, además, activa control offboard en cada instancia.
+## 🎮 Lanzar RViz2
+
+```bash
+source ~/shared_volume/MultiRobot-Planning-RMS/ros2_ws/install/setup.bash
+ros2 launch multi_robot_planning_rms_pkg rviz.launch.py
+```
 
 ## 🛠️ Herramientas y Scripts
 

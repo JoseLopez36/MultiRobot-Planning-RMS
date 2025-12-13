@@ -84,7 +84,7 @@ def main():
     
     # Get script directory and config path
     script_dir = Path(__file__).parent
-    config_file = script_dir.parent / 'config' / 'px4_vehicles.yaml'
+    config_file = script_dir.parent / 'ros2_ws' / 'src' / 'multi_robot_planning_rms_pkg' / 'config' / 'mission.yaml'
     
     if not config_file.exists():
         print(f"Error: Config file not found: {config_file}", file=sys.stderr)
@@ -92,25 +92,24 @@ def main():
     
     # Load configuration
     config = load_config(config_file)
-    px4_config = config.get('px4_config', {})
-    agent_config = config.get('agent_config', {})
-    positions = config.get('initial_positions', [])
+    agents_config = config.get('/**', {}).get('ros__parameters', {}).get('agents', {})
     
-    # Extract configuration values
-    num_positions = len(positions)
-    autostart = px4_config.get('autostart', 4001)
-    model = px4_config.get('model', 'gz_x500_mod')
-    world = px4_config.get('world', 'warehouse')
-    px4_binary = expand_path(px4_config.get('px4_binary_path', 
-        '~/shared_volume/PX4-Autopilot/build/px4_sitl_default/bin/px4'))
-    agent_port = agent_config.get('port', 8888)
-    agent_protocol = agent_config.get('protocol', 'udp4')
+    # Set configuration values
+    autostart = 4001
+    model = 'gz_x500_mod'
+    world = 'default'
+    px4_binary = expand_path('~/shared_volume/PX4-Autopilot/build/px4_sitl_default/bin/px4')
+    agent_port = 8888
+    agent_protocol = 'udp4'
     
-    # Determine number of vehicles
-    num_vehicles = int(sys.argv[1]) if len(sys.argv) > 1 else num_positions
-    if num_vehicles > num_positions:
-        print(f"Warning: Requested {num_vehicles} vehicles but only {num_positions} positions available")
-        num_vehicles = num_positions
+    # Determine number of vehicles and initial positions
+    num_vehicles = len(agents_config.get('ids', []))
+    initial_positions = []
+    for i in range(num_vehicles):
+        initial_positions.append({
+            'x': agents_config.get('initial_positions_x', [])[i],
+            'y': agents_config.get('initial_positions_y', [])[i]
+        })
     
     # Check if PX4 binary exists
     if not os.path.isfile(px4_binary):
@@ -126,7 +125,7 @@ def main():
     # Launch PX4 instances
     px4_processes = []
     for i in range(1, num_vehicles + 1):
-        pos = positions[i - 1]
+        pos = initial_positions[i - 1]
         pose_str = f"{pos['x']},{pos['y']}"
         
         env = os.environ.copy()

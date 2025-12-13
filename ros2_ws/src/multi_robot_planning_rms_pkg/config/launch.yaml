@@ -3,6 +3,8 @@
 # Enable: true launches the node, false does not
 # Log levels: debug, info, warn, error, fatal
 
+planning: [true, 'info']
 darp: [true, 'info']
-coordinator: [true, 'info']
+control: [true, 'info']
 px4_transform: [true, 'info']
+visualization: [true, 'info']

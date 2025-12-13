@@ -1,16 +1,9 @@
 /**:
   ros__parameters:
-    px4:
-      autostart: 4001
-      port: 8888
-      protocol: udp4
-      model: gz_x500_mod
-      world: default
-      px4_binary_path: ~/shared_volume/PX4-Autopilot/build/px4_sitl_default/bin/px4
     agents:
       ids: ["px4_1", "px4_2"]
-      initial_positions_x: [0.0, 5.0]
-      initial_positions_y: [0.0, 5.0]
+      initial_positions_x: [0.0, -5.0]
+      initial_positions_y: [0.0, -5.0]
     tasks:
       min_x: -5
       max_x: 5
