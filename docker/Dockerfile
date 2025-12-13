@@ -15,11 +15,27 @@ USER root
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
         libxcb-cursor0 \
+        ros-humble-vision-msgs \
     && apt-get clean && apt-get autoremove -y && \
     rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies for this project
 RUN pip3 install --no-cache-dir PySide6
+
+# Install DARP dependencies
+RUN pip3 install --no-cache-dir --upgrade \
+    numpy==1.26.4 \
+    scipy \
+    scikit-learn \
+    opencv-python \
+    pygame \
+    numba
+
+# Disable pygame audio warnings
+ENV SDL_AUDIODRIVER=dummy
+
+# Install tmux
+RUN apt-get update && apt-get install -y tmux
 
 # Default workdir matches the base image conventions
 WORKDIR /home/user

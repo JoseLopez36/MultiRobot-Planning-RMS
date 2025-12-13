@@ -19,6 +19,7 @@
   <!-- Dependencias de mensajes custom -->
   <depend>multi_robot_planning_rms_msgs</depend>
   <depend>px4_msgs</depend>
+  <depend>vision_msgs</depend>
   
   <exec_depend>ros2launch</exec_depend>
 

@@ -171,29 +171,9 @@ def main():
                 print(f"MicroXRCEAgent started (PID: {agent_process.pid})")
     except FileNotFoundError:
         print("Warning: pgrep not found, skipping agent check")
-    
-    # Wait a bit for agent to be ready
-    time.sleep(2)
-    
-    # Launch offboard_control_multi for each PX4 instance
-    offboard_processes = []
-    print(f"\nLaunching offboard_control_multi nodes for {num_vehicles} instances...")
-    for i in range(1, num_vehicles + 1):
-        namespace = f'/px4_{i}'
-        log_file = f'/tmp/uav{i}.log'
-        cmd = ['ros2', 'run', 'px4_ros_com', 'offboard_control_multi', 
-               '--ros-args', '-r', f'__ns:={namespace}']
-        
-        with open(log_file, 'w') as log:
-            process = subprocess.Popen(cmd, stdout=log, stderr=subprocess.STDOUT)
-            offboard_processes.append(process)
-            print(f"  Offboard node {i}: PID {process.pid} (namespace: {namespace}, log: {log_file})")
-        
-        # Small delay between launches
-        time.sleep(0.5)
-    
+
     # Store all processes for cleanup
-    all_processes = px4_processes + ([agent_process] if agent_process else []) + offboard_processes
+    all_processes = px4_processes + ([agent_process] if agent_process else [])
     
     # Set up signal handler for Ctrl+C
     def signal_handler(sig, frame):
