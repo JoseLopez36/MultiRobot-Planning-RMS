@@ -4,7 +4,7 @@
 
 /**/darp_node:
   ros__parameters:
-    example_parameter: "Hello, world!"
+    cell_size: 2.0
 
 /**/control_node:
   ros__parameters:
@@ -18,6 +18,6 @@
 /**/visualization_node:
   ros__parameters:
     markers:
-      line_width: 0.10
-      point_scale: 0.25
-      alpha: 0.9
+      line_width: 0.075
+      point_scale: 0.20
+      alpha: 0.85

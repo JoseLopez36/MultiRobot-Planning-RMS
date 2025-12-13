@@ -27,14 +27,14 @@ def generate_launch_description():
     
     # Obtener las configuraciones de activación de los nodos
     nodes = {
-        'planification': launch.get('planification', [True, 'info']),
-        'control': launch.get('control', [True, 'info']),
+        'planning': launch.get('planning', [True, 'info']),
         'darp': launch.get('darp', [True, 'info']),
+        'control': launch.get('control', [True, 'info']),
         'px4_transform': launch.get('px4_transform', [True, 'info']),
-        'visualization': launch.get('visualization', [True, 'info']),
+        'visualization': launch.get('visualization', [True, 'info'])
     }
 
-    # Obtener IDs de agentes desde mission.yaml (estructura /**: ros__parameters: agents: ids)
+    # Obtener IDs de agentes desde mission.yaml
     agents_ids = []
     try:
         agents_ids = mission.get('/**', {}).get('ros__parameters', {}).get('agents', {}).get('ids', [])
@@ -47,36 +47,18 @@ def generate_launch_description():
     # Inicializar la descripción de la lanzamiento
     ld = LaunchDescription()
 
-    # Condicionalmente agregar el nodo de planificación (planification_node)
-    if nodes['planification'][0]:
+    # Condicionalmente agregar el nodo de planificación
+    if nodes['planning'][0]:
         ld.add_action(
             Node(
                 package='multi_robot_planning_rms_pkg',
-                executable='planification_node',
-                name='planification_node',
+                executable='planning_node',
+                name='planning_node',
                 output='screen',
-                arguments=['--ros-args', '--log-level', nodes['planification'][1]],
+                arguments=['--ros-args', '--log-level', nodes['planning'][1]],
                 parameters=[mission_config_path, nodes_config_path]
             )
         )
-
-    # Condicionalmente agregar N nodos de control (uno por agente)
-    if nodes['control'][0]:
-        for agent_id in agents_ids:
-            # Name can be repeated if namespace differs; this yields /<agent_id>/control_node
-            ld.add_action(
-                Node(
-                    package='multi_robot_planning_rms_pkg',
-                    executable='control_node',
-                    namespace=agent_id,
-                    name='control_node',
-                    output='screen',
-                    arguments=['--ros-args', '--log-level', nodes['control'][1]],
-                    # Pass mission.yaml (for shared params) + explicit agent_id + defaults from nodes.yaml
-                    parameters=[mission_config_path, {'agent_id': agent_id}, control_params]
-                )
-            )
-
 
     # Condicionalmente agregar el nodo DARP
     if nodes['darp'][0]:
@@ -91,6 +73,21 @@ def generate_launch_description():
             )
         )
 
+    # Condicionalmente agregar N nodos de control (uno por agente)
+    if nodes['control'][0]:
+        for agent_id in agents_ids:
+            ld.add_action(
+                Node(
+                    package='multi_robot_planning_rms_pkg',
+                    executable='control_node',
+                    namespace=agent_id,
+                    name='control_node',
+                    output='screen',
+                    arguments=['--ros-args', '--log-level', nodes['control'][1]],
+                    parameters=[mission_config_path, {'agent_id': agent_id}, control_params]
+                )
+            )
+
     # Condicionalmente agregar el nodo de transformacion de PX4
     if nodes['px4_transform'][0]:
         ld.add_action(
@@ -104,7 +101,7 @@ def generate_launch_description():
             )
         )
 
-    # Condicionalmente agregar el nodo de visualización (trayectorias -> RViz markers)
+    # Condicionalmente agregar el nodo de visualización
     if nodes['visualization'][0]:
         ld.add_action(
             Node(
