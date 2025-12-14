@@ -101,6 +101,7 @@ class VisualizationNode(Node):
 
         # Suscriptores de trayectorias
         self.traj_subs = {}
+        self.traj_remaining_subs = {}
         self.colors = palette(alpha=self.alpha)
         self.agent_index = {aid: i for i, aid in enumerate(self.agent_ids)}
 
@@ -119,7 +120,7 @@ class VisualizationNode(Node):
             )
             self.traj_subs[agent_id] = self.create_subscription(
                 Trajectory2D,
-                f"/{agent_id}/planning/trajectory",
+                f"/{agent_id}/planning/trajectory_remaining",
                 lambda msg, uid=agent_id: self.trajectory_cb(msg, uid),
                 trajectory_qos
             )
@@ -349,8 +350,6 @@ class VisualizationNode(Node):
             y = min_y + (float(r) + 0.5) * cell
             for c in range(cols):
                 zval = int(zones[r * cols + c])
-                if zval <= 0:
-                    continue
                 x = min_x + (float(c) + 0.5) * cell
                 fill.points.append(Point(x=float(x), y=float(y), z=zc))
                 fill.colors.append(self.color_for_zone(zval, alpha=float(self.zones_fill_alpha)))
@@ -362,8 +361,6 @@ class VisualizationNode(Node):
             y1 = min_y + float(r + 1) * cell
             for c in range(cols):
                 zval = int(zones[r * cols + c])
-                if zval <= 0:
-                    continue
 
                 # Borde derecho
                 zr = int(zones[r * cols + (c + 1)]) if (c + 1) < cols else 0
@@ -445,6 +442,12 @@ class VisualizationNode(Node):
         return self.colors[idx % len(self.colors)]
 
     def color_for_zone(self, zone_value: int, alpha: float) -> ColorRGBA:
+        # Si es visitado, asignar gris oscuro
+        if zone_value == 0:
+            return ColorRGBA(r=0.2, g=0.2, b=0.2, a=alpha)
+        # Si es obstáculo, asignar gris claro
+        if zone_value == -1:
+            return ColorRGBA(r=0.7, g=0.7, b=0.7, a=alpha)
         # zone_value: 1..N => índice de agente zone_value-1
         idx = max(0, int(zone_value) - 1)
         base = palette(alpha=alpha)[idx % len(self.colors)]

@@ -2,15 +2,14 @@
   ros__parameters:
     agents:
       ids: ["px4_1", "px4_2", "px4_3"]
-      initial_positions_x: [0.0, -5.0, 3.0]
-      initial_positions_y: [0.0, -5.0, -2.0]
+      initial_positions_x: [-2.0, 0.0, 2.0]
+      initial_positions_y: [0.0, 0.0, 0.0]
     tasks:
       # Área de la tarea en metros: rectángulo [min, max)
-      min_x: -10
-      max_x: 10
-      min_y: -10
-      max_y: 10
+      min_x: -11
+      max_x: 11
+      min_y: -11
+      max_y: 11
       # Posiciones de los obstáculos en metros
-      obstacles_positions_x: [2.0, -3.0, -4.0, 5.0, -6.0]
-      obstacles_positions_y: [2.0, -3.0, 3.0, 4.0, 5.0]
-    
+      obstacles_positions_x: [4.0, 4.0, 4.0, 4.0, -8.0, -8.0, -8.0, -8.0, -4.0, -2.0, 0.0, 2.0, 4.0]
+      obstacles_positions_y: [2.0, 4.0, 6.0, 8.0, -4.0, -2.0, 0.0, 2.0, -4.0, -4.0, -4.0, -4.0, -4.0]

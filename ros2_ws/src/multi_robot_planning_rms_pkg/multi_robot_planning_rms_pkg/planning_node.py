@@ -1,3 +1,4 @@
+import math
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy, DurabilityPolicy
@@ -6,6 +7,7 @@ from geometry_msgs.msg import PointStamped
 from vision_msgs.msg import Point2D
 
 from std_msgs.msg import Int32MultiArray, MultiArrayDimension
+from std_srvs.srv import Trigger
 
 from multi_robot_planning_rms_msgs.srv import DarpPetition
 from multi_robot_planning_rms_msgs.msg import Trajectory2D
@@ -17,6 +19,7 @@ class PlanningNode(Node):
         # Parámetros
         self.declare_parameter("agents.ids", [""])
         self.declare_parameter("cell_size", 2.0)
+        self.declare_parameter("visited.update_period", 0.5)
         self.declare_parameter("tasks.min_x", 0)
         self.declare_parameter("tasks.max_x", 0)
         self.declare_parameter("tasks.min_y", 0)
@@ -25,12 +28,22 @@ class PlanningNode(Node):
         self.declare_parameter("tasks.obstacles_positions_y", [0.0])
         self.agent_ids = self.get_parameter("agents.ids").get_parameter_value().string_array_value
         self.cell_size = self.get_parameter("cell_size").get_parameter_value().double_value
+        self.visited_update_period = self.get_parameter("visited.update_period").get_parameter_value().double_value
         self.min_x = self.get_parameter("tasks.min_x").get_parameter_value().integer_value
         self.max_x = self.get_parameter("tasks.max_x").get_parameter_value().integer_value
         self.min_y = self.get_parameter("tasks.min_y").get_parameter_value().integer_value
         self.max_y = self.get_parameter("tasks.max_y").get_parameter_value().integer_value
         self.obstacles_positions_x = self.get_parameter("tasks.obstacles_positions_x").get_parameter_value().double_array_value
         self.obstacles_positions_y = self.get_parameter("tasks.obstacles_positions_y").get_parameter_value().double_array_value
+
+        # Grid (cache)
+        self.rows, self.cols = self.compute_rows_cols()
+
+        # Estado de mapa visitado: celdas ya cubiertas por cualquier agente
+        self.visited_mask = set()  # set[int] de índices flat (row*cols+col)
+        self.static_obstacle_cells = self.compute_static_obstacle_cells()
+        self.zones_current = None  # list[int] con visited forzado a 0
+        self.last_published_zones = None  # list[int]
 
         # QoS para trayectorias
         trajectory_qos = QoSProfile(
@@ -98,6 +111,15 @@ class PlanningNode(Node):
         # Timer para solicitar la planificación inicial una vez que se reciben todas las posiciones
         self.timer = self.create_timer(0.5, self.maybe_request_initial_plan)
 
+        # Timer para marcar celdas visitadas y refrescar zones
+        self.visited_timer = self.create_timer(
+            float(self.visited_update_period) if self.visited_update_period > 0.0 else 0.5,
+            self.update_visited_from_positions,
+        )
+
+        # Servicio de replanning bajo demanda
+        self.replan_srv = self.create_service(Trigger, "/planning/replan", self.replan_callback)
+
         self.get_logger().info("Nodo de planificacion iniciado. Esperando posiciones iniciales...")
 
     def position_callback(self, msg: PointStamped, agent_id: str):
@@ -114,10 +136,13 @@ class PlanningNode(Node):
             return
 
         self.plan_requested = True
-        self.request_darp()
+        self.request_darp(include_visited_as_obstacles=False)
 
-    def request_darp(self):
-        self.get_logger().info("Peticion de algoritmo DARP (planificacion inicial)...")
+    def request_darp(self, include_visited_as_obstacles: bool):
+        if include_visited_as_obstacles:
+            self.get_logger().info("Peticion de algoritmo DARP (replanning con visited)...")
+        else:
+            self.get_logger().info("Peticion de algoritmo DARP (planificacion inicial)...")
         req = DarpPetition.Request()
         req.min_x = int(self.min_x)
         req.max_x = int(self.max_x)
@@ -142,6 +167,30 @@ class PlanningNode(Node):
             p.y = float(pos.point.y)
             req.initial_positions.append(p)
 
+        # Celdas visitadas como obstáculos (solo para replanning)
+        if include_visited_as_obstacles:
+            start_cells = set()
+            for agent_id in self.agent_ids:
+                pos = self.positions.get(agent_id)
+                if pos is None:
+                    continue
+                cell = self.world_to_cell(float(pos.point.x), float(pos.point.y))
+                if cell is not None:
+                    start_cells.add(int(cell))
+
+            for cell in sorted(self.visited_mask):
+                if cell in start_cells:
+                    continue
+                if cell in self.static_obstacle_cells:
+                    continue
+                pt = self.cell_to_world_center(int(cell))
+                if pt is None:
+                    continue
+                p = Point2D()
+                p.x = float(pt[0])
+                p.y = float(pt[1])
+                req.obstacle_points.append(p)
+
         future = self.darp_client.call_async(req)
         future.add_done_callback(self.darp_callback)
 
@@ -162,22 +211,11 @@ class PlanningNode(Node):
             f"Solucion DARP recibida con {len(response.trajectories)} trayectorias"
         )
 
-        # Publicar zonas para visualización (filas/columnas en layout)
-        # DARP devuelve una matriz plana en orden de filas: zones[row * cols + col]
+        # Cachear y publicar zones para visualización (visited = 0)
         if response.zones:
-            extent_x = int(self.max_x) - int(self.min_x)
-            extent_y = int(self.max_y) - int(self.min_y)
-            cols = int(round(float(extent_x) / float(self.cell_size))) if self.cell_size > 0.0 else 0
-            rows = int(round(float(extent_y) / float(self.cell_size))) if self.cell_size > 0.0 else 0
-
-            zones_msg = Int32MultiArray()
-            zones_msg.layout.dim = [
-                MultiArrayDimension(label="rows", size=max(0, rows), stride=max(0, rows * cols)),
-                MultiArrayDimension(label="cols", size=max(0, cols), stride=max(0, cols)),
-            ]
-            zones_msg.layout.data_offset = 0
-            zones_msg.data = list(response.zones)
-            self.zones_pub.publish(zones_msg)
+            self.zones_current = list(response.zones)
+            self.apply_visited_to_zones_inplace(self.zones_current)
+            self.publish_zones(self.zones_current)
 
         # Publicar trayectorias por agente basado en el orden de indices
         for i, traj in enumerate(response.trajectories):
@@ -195,6 +233,112 @@ class PlanningNode(Node):
             )
 
         self.plan_done = True
+        self.plan_requested = False
+
+    def replan_callback(self, request, response):
+        if self.plan_requested:
+            response.success = False
+            response.message = "Replan rechazado: ya hay una petición DARP en curso"
+            return response
+        if not self.all_positions_received():
+            response.success = False
+            response.message = "Replan rechazado: faltan posiciones iniciales"
+            return response
+
+        self.plan_requested = True
+        self.get_logger().info("Replan solicitado: llamando a DARP con visited como obstáculos")
+        self.request_darp(include_visited_as_obstacles=True)
+        response.success = True
+        response.message = "Replan solicitado"
+        return response
+
+    def compute_rows_cols(self):
+        extent_x = int(self.max_x) - int(self.min_x)
+        extent_y = int(self.max_y) - int(self.min_y)
+        cols = int(round(float(extent_x) / float(self.cell_size))) if self.cell_size > 0.0 else 0
+        rows = int(round(float(extent_y) / float(self.cell_size))) if self.cell_size > 0.0 else 0
+        return max(0, rows), max(0, cols)
+
+    def world_to_cell(self, x: float, y: float):
+        if self.rows <= 0 or self.cols <= 0 or self.cell_size <= 0.0:
+            return None
+        gx = int(math.floor((x - float(self.min_x)) / float(self.cell_size)))
+        gy = int(math.floor((y - float(self.min_y)) / float(self.cell_size)))
+        gx = max(0, min(self.cols - 1, gx))
+        gy = max(0, min(self.rows - 1, gy))
+        return int(gy * self.cols + gx)
+
+    def cell_to_world_center(self, cell: int):
+        if self.rows <= 0 or self.cols <= 0 or self.cell_size <= 0.0:
+            return None
+        if cell < 0 or cell >= (self.rows * self.cols):
+            return None
+        r = int(cell // self.cols)
+        c = int(cell % self.cols)
+        x = float(self.min_x) + (float(c) + 0.5) * float(self.cell_size)
+        y = float(self.min_y) + (float(r) + 0.5) * float(self.cell_size)
+        return (x, y)
+
+    def compute_static_obstacle_cells(self):
+        cells = set()
+        for x, y in zip(self.obstacles_positions_x, self.obstacles_positions_y):
+            cell = self.world_to_cell(float(x), float(y))
+            if cell is not None:
+                cells.add(int(cell))
+        return cells
+
+    def apply_visited_to_zones_inplace(self, zones_list):
+        if zones_list is None:
+            return
+        for cell in self.visited_mask:
+            idx = int(cell)
+            if idx < 0 or idx >= len(zones_list):
+                continue
+            # No sobreescribir obstáculos
+            if int(zones_list[idx]) == -1:
+                continue
+            zones_list[idx] = 0
+
+    def publish_zones(self, zones_list):
+        if zones_list is None:
+            return
+        if self.rows <= 0 or self.cols <= 0:
+            return
+        expected = int(self.rows * self.cols)
+        data = list(zones_list[:expected]) if len(zones_list) >= expected else list(zones_list)
+
+        zones_msg = Int32MultiArray()
+        zones_msg.layout.dim = [
+            MultiArrayDimension(label="rows", size=int(self.rows), stride=int(self.rows * self.cols)),
+            MultiArrayDimension(label="cols", size=int(self.cols), stride=int(self.cols)),
+        ]
+        zones_msg.layout.data_offset = 0
+        zones_msg.data = data
+        self.zones_pub.publish(zones_msg)
+        self.last_published_zones = list(data)
+
+    def update_visited_from_positions(self):
+        changed = False
+        for agent_id in self.agent_ids:
+            pos = self.positions.get(agent_id)
+            if pos is None:
+                continue
+            cell = self.world_to_cell(float(pos.point.x), float(pos.point.y))
+            if cell is None:
+                continue
+            if cell in self.static_obstacle_cells:
+                continue
+            if cell not in self.visited_mask:
+                self.visited_mask.add(int(cell))
+                changed = True
+
+        if not changed:
+            return
+
+        # Si ya tenemos zones, aplicar visited y republicar
+        if self.zones_current is not None:
+            self.apply_visited_to_zones_inplace(self.zones_current)
+            self.publish_zones(self.zones_current)
 
 def main(args=None):
     rclpy.init(args=args)

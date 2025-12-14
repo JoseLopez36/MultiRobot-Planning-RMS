@@ -152,9 +152,9 @@ class DarpNode(Node):
         for i in range(rows):
             for j in range(cols):
                 cell_value = int(assignment_matrix[i, j])
-                # Si es obstáculo, asignar 0. Si no, asignar ID de UAV + 1
+                # Si es obstáculo, asignar -1. Si no, asignar ID de UAV + 1
                 if cell_value == planner.darp_instance.droneNo:
-                    zones_matrix[i, j] = 0
+                    zones_matrix[i, j] = -1
                 else:
                     zones_matrix[i, j] = cell_value + 1
 

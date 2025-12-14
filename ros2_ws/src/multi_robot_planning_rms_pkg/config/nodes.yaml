@@ -1,6 +1,8 @@
 /**/planning_node:
   ros__parameters:
     cell_size: 2.0
+    visited:
+      update_period: 0.5
 
 /**/darp_node:
   ros__parameters:

@@ -5,6 +5,7 @@ from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy, DurabilityPolicy
 
 from geometry_msgs.msg import PointStamped
+from vision_msgs.msg import Point2D
 from multi_robot_planning_rms_msgs.msg import Trajectory2D
 from px4_msgs.msg import OffboardControlMode, VehicleCommand, VehicleStatus
 
@@ -81,6 +82,13 @@ class ControlNode(Node):
             qos_profile
         )
 
+        # Publicador: resto de trayectoria (solo visualización)
+        self.remaining_traj_pub = self.create_publisher(
+            Trajectory2D,
+            f"/{self.agent_id}/planning/trajectory_remaining",
+            trajectory_qos,
+        )
+
         # Timer: 10 Hz bucle de control
         self.timer = self.create_timer(0.1, self.control_loop)
 
@@ -97,10 +105,23 @@ class ControlNode(Node):
     def trajectory_callback(self, msg: Trajectory2D):
         self.trajectory_points = list(msg.points)
         self.current_index = 0
+        self.publish_remaining_trajectory()
 
         self.get_logger().info(
             f"{self.agent_id}: Nueva trayectoria recibida (len={len(self.trajectory_points)}). Reiniciando seguimiento"
         )
+
+    def publish_remaining_trajectory(self):
+        if not self.trajectory_points:
+            return
+        start = max(0, min(int(self.current_index), len(self.trajectory_points)))
+        out = Trajectory2D()
+        # Re-publicar solo los puntos pendientes
+        out.points = [
+            Point2D(x=float(p.x), y=float(p.y))
+            for p in self.trajectory_points[start:]
+        ]
+        self.remaining_traj_pub.publish(out)
 
     def get_px4_system_id(self, agent_id: str) -> int:
         # Asume formato "px4_X" -> sistema X
@@ -236,6 +257,7 @@ class ControlNode(Node):
             self.publish_trajectory_setpoint(
                 target_pos.x, target_pos.y, self.target_altitude
             )
+            self.publish_remaining_trajectory()
 
 def main(args=None):
     rclpy.init(args=args)
