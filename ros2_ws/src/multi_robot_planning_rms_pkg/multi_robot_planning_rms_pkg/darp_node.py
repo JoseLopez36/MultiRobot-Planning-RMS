@@ -2,6 +2,7 @@ import rclpy
 import os
 import sys
 import numpy as np
+import cv2
 from rclpy.node import Node
 from multi_robot_planning_rms_msgs.srv import DarpPetition
 from multi_robot_planning_rms_msgs.msg import Trajectory2D
@@ -38,7 +39,12 @@ class DarpNode(Node):
             request.min_y,
             cols
         )
-        
+
+        # Rellenar zonas aisladas sin UAVs
+        obstacles_positions = self.process_darp_request(
+            rows, cols, initial_positions, obstacles_positions
+        )
+
         # Ejecutar algoritmo DARP
         darp = MultiRobotPathPlanner(
             nx=rows,
@@ -96,6 +102,39 @@ class DarpNode(Node):
             obstacles_positions.append(cell)
 
         return initial_positions, obstacles_positions
+
+    """ Rellena con obstáculos las zonas aisladas que no contienen UAVs. """
+    def process_darp_request(self, rows, cols, initial_positions, obstacles_positions):
+        
+        # Celdas libres = 255, obstáculos = 0
+        grid = np.zeros((rows, cols), dtype=np.uint8)
+        grid.fill(255)
+        for obs_cell in obstacles_positions:
+            row, col = obs_cell // cols, obs_cell % cols
+            grid[row, col] = 0
+
+        # Detectar componentes conexos
+        num_labels, labels_im = cv2.connectedComponents(grid, connectivity=4)
+        if num_labels <= 2: # Return si solo hay una zona conexa
+            return obstacles_positions
+        self.get_logger().warn(f"Detectadas {num_labels - 1} zonas. Rellenando zonas sin UAVs.")
+
+        # Identificar la zona que contiene los UAVs
+        uav_label = None
+        for uav_cell in initial_positions:
+            row, col = uav_cell // cols, uav_cell % cols
+            uav_label = labels_im[row, col]
+            break  # Todos los UAVs están en la misma zona
+
+        # Rellenar zonas sin UAVs
+        new_obstacles = list(obstacles_positions)
+        for row in range(rows):
+            for col in range(cols):
+                label = labels_im[row, col]
+                if label > 0 and label != uav_label:
+                    new_obstacles.append(row * cols + col)
+
+        return new_obstacles
 
     """ Convierte resultados de DARP (trayectorias y zonas) a mensajes ROS2. """
     def process_darp_output(self, planner, min_x, min_y, rows, cols):
