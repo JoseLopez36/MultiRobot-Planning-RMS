@@ -77,7 +77,7 @@ class DarpNode(Node):
             
             # Trasladar coordenadas al origen del grid
             grid_x = x - min_x
-            grid_y = y - min_y
+            grid_y = -y - min_y
             
             # Convertir a índice de celda
             cell = grid_y * cols + grid_x
@@ -90,7 +90,7 @@ class DarpNode(Node):
             y = int(point.y)
             
             grid_x = x - min_x
-            grid_y = y - min_y
+            grid_y = -y - min_y
             
             cell = grid_y * cols + grid_x
             obstacles_positions.append(cell)
