@@ -16,6 +16,7 @@ RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
         libxcb-cursor0 \
         ros-humble-vision-msgs \
+        tmux \
     && apt-get clean && apt-get autoremove -y && \
     rm -rf /var/lib/apt/lists/*
 
