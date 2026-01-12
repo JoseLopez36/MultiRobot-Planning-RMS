@@ -3,6 +3,7 @@ import os
 import sys
 import math
 import numpy as np
+import cv2
 from rclpy.node import Node
 from multi_robot_planning_rms_msgs.srv import DarpPetition
 from multi_robot_planning_rms_msgs.msg import Trajectory2D
@@ -38,6 +39,8 @@ class DarpNode(Node):
         cols = int(round(extent_x / self.cell_size))
         rows = int(round(extent_y / self.cell_size))
 
+        num_uavs = len(request.initial_positions)
+
         # Convertir coordenadas de interfaz a índices de celda DARP
         initial_positions, obstacles_positions = self.process_darp_input(
             request.initial_positions,
@@ -47,29 +50,47 @@ class DarpNode(Node):
             rows,
             cols,
         )
-        
-        # Ejecutar algoritmo DARP
-        darp = MultiRobotPathPlanner(
-            nx=rows,
-            ny=cols,
-            notEqualPortions=False,
-            initial_positions=initial_positions,
-            portions=[],
-            obs_pos=obstacles_positions,
-            visualization=request.visualization,
-        )
 
-        if not darp.DARP_success:
-            self.get_logger().error("DARP failed")
-            return response
+        # Detectar zonas de obstáculos y UAV divididos
+        zones = self.process_darp_request(rows, cols, initial_positions, obstacles_positions)
 
-        # Convertir resultados de DARP a mensajes ROS2
+        # Estructuras para combinar resultados
+        all_trajectories = [None] * num_uavs
+        grid_zones = np.zeros((rows, cols), dtype=np.int32)
+
+        # Ejecutar DARP para cada zona
+        for zone in zones:
+            darp = MultiRobotPathPlanner(
+                nx=rows,
+                ny=cols,
+                notEqualPortions=False,
+                initial_positions=zone['uav_cells'],
+                portions=[],
+                obs_pos=zone['obstacles'],
+                visualization=request.visualization,
+            )
+            if not darp.DARP_success:
+                self.get_logger().error(f"DARP falló para zona {zone['label']}")
+                return response
+
+            # Cada trayectoria con índice correspondiente al UAV
+            for i, idx_original in enumerate(zone['uav_indices']):
+                all_trajectories[idx_original] = darp.best_case.paths[i]
+
+            # Combinar matriz de zonas (mapear IDs locales a originales)
+            for i in range(rows):
+                for j in range(cols):
+                    local_id = int(darp.darp_instance.A[i, j])
+                    if local_id < len(zone['uav_indices']):
+                        original_id = zone['uav_indices'][local_id]
+                        grid_zones[i, j] = original_id + 1
+
+        # Convertir resultados combinados a mensajes ROS2
         response.trajectories, response.zones = self.process_darp_output(
-            darp,
+            all_trajectories,
+            grid_zones,
             request.min_x,
-            request.min_y,
-            rows,
-            cols
+            request.min_y
         )
 
         self.get_logger().info("Petición procesada exitosamente")
@@ -114,20 +135,60 @@ class DarpNode(Node):
 
         return initial_positions, obstacles_positions
 
-    """ Convierte resultados de DARP (trayectorias y zonas) a mensajes ROS2. """
-    def process_darp_output(self, planner, min_x, min_y, rows, cols):
-        # Los paths vienen en subceldas
-        subcell_size = self.cell_size / 2.0
+    """ Rellena con obstáculos las zonas aisladas que no contienen UAVs y divide las que sí tienen """
+    def process_darp_request(self, rows, cols, initial_positions, obstacles_positions):
+        
+        # Celdas libres = 255, obstáculos = 0
+        grid = np.zeros((rows, cols), dtype=np.uint8)
+        grid.fill(255)
+        for obs_cell in obstacles_positions:
+            row, col = obs_cell // cols, obs_cell % cols
+            if 0 <= row < rows and 0 <= col < cols:
+                grid[row, col] = 0
 
+        # Detectar componentes conexos y agrupar UAVs por zona
+        num_labels, labels_im = cv2.connectedComponents(grid, connectivity=4)
+        uavs_por_zona = {}
+        for idx, uav_cell in enumerate(initial_positions):
+            row, col = uav_cell // cols, uav_cell % cols
+            label = labels_im[row, col]
+            if label not in uavs_por_zona:
+                uavs_por_zona[label] = []
+            uavs_por_zona[label].append(idx)
+
+        # Preparar datos para cada zona con UAVs
+        zones = []
+        for label, indices_uavs in uavs_por_zona.items():
+            # Obstáculos de una zona compuestos por los originales y las celdas de otras zonas
+            obs_zona = list(obstacles_positions)
+            for row in range(rows):
+                for col in range(cols):
+                    cell_label = labels_im[row, col]
+                    if cell_label > 0 and cell_label != label:
+                        obs_zona.append(row * cols + col)
+
+            zones.append({
+                'label': label,
+                'uav_cells': [initial_positions[i] for i in indices_uavs],
+                'uav_indices': indices_uavs,
+                'obstacles': obs_zona
+            })
+
+        if len(zones) > 1:
+            self.get_logger().info(f"Detectadas {len(zones)} zonas con UAVs")
+
+        return zones
+
+    def process_darp_output(self, todas_las_trayectorias, matriz_zonas, min_x, min_y):
+        """Convierte trayectorias y matriz de zonas combinadas a mensajes ROS2."""
         trajectories = []
 
-        # Procesar trayectorias de cada robot
-        for robot_id in range(planner.darp_instance.droneNo):
-            path = planner.best_case.paths[robot_id]
+        subcell_size = self.cell_size / 2.0
 
+        for path in todas_las_trayectorias:
             traj = Trajectory2D()
 
-            if len(path) > 0:
+            if path and len(path) > 0:
                 # Punto inicial
                 first_move = path[0]
                 p = Point2D()
@@ -145,21 +206,8 @@ class DarpNode(Node):
 
             trajectories.append(traj)
 
-        # Procesar matriz de zonas
-        assignment_matrix = planner.darp_instance.A
-        zones_matrix = np.zeros((rows, cols), dtype=np.int32)
-
-        for i in range(rows):
-            for j in range(cols):
-                cell_value = int(assignment_matrix[i, j])
-                # Si es obstáculo, asignar -1. Si no, asignar ID de UAV + 1
-                if cell_value == planner.darp_instance.droneNo:
-                    zones_matrix[i, j] = -1
-                else:
-                    zones_matrix[i, j] = cell_value + 1
-
         # Aplanar matriz para el mensaje
-        zones = zones_matrix.flatten().tolist()
+        zones = matriz_zonas.flatten().tolist()
 
         return trajectories, zones
 
