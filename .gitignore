@@ -48,6 +48,9 @@ ENV/
 *.dylib
 *.dll
 
+# Documentation
+docs/Build/
+
 # Temporary files
 *.tmp
 *.bak

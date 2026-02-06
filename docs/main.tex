@@ -1,0 +1,109 @@
+\documentclass[runningheads]{llncs}
+
+\usepackage[T1]{fontenc}
+
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{textcomp}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish]{babel}
+
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
+    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+
+\begin{document}
+%
+\title{Sistema Multi-Robot para Planificación de Cobertura de Área y Patrullaje de Perímetro}
+%
+\author{Daniel García Burgos,
+Hongfan Yang,
+José Antonio García Campanario,
+José Manuel Parejo Alonso,
+José Francisco López Ruiz}
+%
+\authorrunning{D.G. Burgos, H. Yang, J.A. García, J.M. Parejo, J.F. López}
+%
+\institute{Máster en Ingeniería Electrónica, Robótica y Automática \\
+Universidad de Sevilla, Sevilla, España}
+%
+\maketitle
+%
+\begin{abstract}
+En este artículo se presenta el desarrollo e implementación de un sistema multi-robot para tareas de planificación de cobertura (Coverage Path Planning) y patrullaje de perímetro. El sistema utiliza el algoritmo DARP (Divide Areas Algorithm for Robotics Platforms) para la división eficiente del área de trabajo entre múltiples agentes, asegurando una cobertura completa y optimizada. Además, se propone una estrategia para la vigilancia de perímetros. La implementación se ha realizado sobre ROS2 (Robot Operating System 2), integrando el piloto automático PX4 y el simulador Gazebo para la validación de los algoritmos en entornos realistas. Se detallan la arquitectura del sistema, la metodología empleada y se presentan resultados de simulación que demuestran la viabilidad y eficacia de la solución propuesta.
+
+\keywords{Planificación de cobertura \and Sistemas multi-robot \and ROS2 \and PX4 \and DARP \and Patrullaje de perímetro \and Simulación.}
+\end{abstract}
+
+\section{Introducción}
+\label{sec:introduccion}
+% - Contexto de la robótica móvil y sistemas multi-robot
+% - Importancia del Coverage Path Planning (CPP) y patrullaje
+% - Objetivos del proyecto
+% - Estructura del paper
+
+\section{Estado del Arte}
+\label{sec:estado_arte}
+% - Algoritmos relevantes
+% - Enfoques para multi-robot
+% - Caso de cobertura de área
+% - Caso de cobertura de perímetro
+
+\section{Algoritmos de Planificación}
+\label{sec:algoritmos}
+\subsection{Cobertura de Área con DARP}
+% - Descripción del algoritmo DARP
+% - Adaptaciones realizadas
+
+\subsection{Patrullaje de Perímetro}
+% - Descripción del algoritmo de patrullaje
+% - Lógica de funcionamiento
+
+\section{Descripción del Sistema}
+\label{sec:sistema}
+\subsection{Arquitectura de Software}
+% - Uso de ROS2 Humble
+% - Nodos implementados y comunicación
+% - Estructura del repositorio (mencionar brevemente Docker y herramientas)
+
+\subsection{Plataforma de Simulación}
+% - PX4 Autopilot
+% - Gazebo Garden
+% - Modelos de robots utilizados
+
+\subsection{Interfaz Gráfica (HUD)}
+% - Características
+
+\section{Simulación y Resultados}
+\label{sec:resultados}
+\subsection{Entorno de Simulación}
+% - Descripción de los parámetros
+% - Configuración de los experimentos
+
+\subsection{Resultados Experimentales}
+% - Métricas de evaluación (tiempo de cobertura, etc.)
+% - Gráficas y tablas de resultados
+% - Imágenes de la simulación (capturas de Gazebo/RViz)
+
+\subsection{Discusión}
+% - Análisis de los resultados obtenidos
+% - Comparativa entre diferentes configuraciones o escenarios
+
+\section{Conclusiones y Trabajo Futuro}
+\label{sec:conclusiones}
+% - Resumen de los logros alcanzados
+% - Limitaciones detectadas
+% - Líneas de trabajo futuro (mejoras en algoritmos, pruebas en hardware real, etc.)
+
+%
+% ---- Bibliography ----
+%
+\bibliographystyle{splncs04}
+\bibliography{bibliography}
+
+\end{document}
