@@ -144,9 +144,12 @@ class VisualizationNode(Node):
         self.setpoints[agent_id] = msg
 
     def trajectory_cb(self, msg: Trajectory2D, agent_id: str) -> None:
-        pts = [(float(p.x), float(p.y)) for p in msg.points]
-        markers = self.make_trajectory_markers(agent_id, pts)
-        self.trajectory_markers_pub.publish(markers)
+        if msg.points is not None:
+            pts = [(float(p.x), float(p.y)) for p in msg.points]
+            markers = self.make_trajectory_markers(agent_id, pts)
+            self.trajectory_markers_pub.publish(markers)
+        else:
+            self.trajectory_markers_pub.publish(MarkerArray())
 
     def zones_cb(self, msg: Int32MultiArray) -> None:
         rows, cols = self.grid_rows_cols(msg)

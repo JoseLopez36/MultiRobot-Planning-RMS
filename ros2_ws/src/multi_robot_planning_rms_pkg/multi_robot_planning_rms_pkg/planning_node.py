@@ -27,6 +27,7 @@ class PlanningNode(Node):
         self.declare_parameter("tasks.obstacles_positions_x", [0.0])
         self.declare_parameter("tasks.obstacles_positions_y", [0.0])
         self.agent_ids = self.get_parameter("agents.ids").get_parameter_value().string_array_value
+        self.original_agent_ids = list(self.agent_ids)  # Copia para mantener indices originales
         self.cell_size = self.get_parameter("cell_size").get_parameter_value().double_value
         self.visited_update_period = self.get_parameter("visited.update_period").get_parameter_value().double_value
         self.min_x = self.get_parameter("tasks.min_x").get_parameter_value().integer_value
@@ -35,6 +36,33 @@ class PlanningNode(Node):
         self.max_y = self.get_parameter("tasks.max_y").get_parameter_value().integer_value
         self.obstacles_positions_x = self.get_parameter("tasks.obstacles_positions_x").get_parameter_value().double_array_value
         self.obstacles_positions_y = self.get_parameter("tasks.obstacles_positions_y").get_parameter_value().double_array_value
+
+        # Parámetros de simulación
+        self.declare_parameter("simulation.enabled", False)
+        self.declare_parameter("simulation.events_types", [""])
+        self.declare_parameter("simulation.events_times", [0.0])
+        self.declare_parameter("simulation.events_agents", [""])
+
+        self.sim_enabled = self.get_parameter("simulation.enabled").get_parameter_value().bool_value
+        self.sim_events = []
+        self.sim_start_time = None
+        
+        if self.sim_enabled:
+            types = self.get_parameter("simulation.events_types").get_parameter_value().string_array_value
+            times = self.get_parameter("simulation.events_times").get_parameter_value().double_array_value
+            agents = self.get_parameter("simulation.events_agents").get_parameter_value().string_array_value
+            
+            for t, tm, ag in zip(types, times, agents):
+                if t:
+                    self.sim_events.append({
+                        "type": t,
+                        "time": tm,
+                        "agent": ag,
+                        "fired": False
+                    })
+            self.sim_events.sort(key=lambda x: x["time"])
+            self.sim_timer = self.create_timer(1.0, self.check_simulation_events)
+            self.get_logger().info(f"Modo de simulacion activado con {len(self.sim_events)} eventos")
 
         # Grid (cache)
         self.rows, self.cols = self.compute_rows_cols()
@@ -214,6 +242,7 @@ class PlanningNode(Node):
         # Cachear y publicar zones para visualización (visited = 0)
         if response.zones:
             self.zones_current = list(response.zones)
+            self.apply_original_indices_to_zones_inplace(self.zones_current)
             self.apply_visited_to_zones_inplace(self.zones_current)
             self.publish_zones(self.zones_current)
 
@@ -234,6 +263,10 @@ class PlanningNode(Node):
 
         self.plan_done = True
         self.plan_requested = False
+
+        if self.sim_enabled and self.sim_start_time is None:
+            self.sim_start_time = self.get_clock().now()
+            self.get_logger().info("Temporizador de simulacion iniciado")
 
     def replan_callback(self, request, response):
         if self.plan_requested:
@@ -287,6 +320,31 @@ class PlanningNode(Node):
                 cells.add(int(cell))
         return cells
 
+    def apply_original_indices_to_zones_inplace(self, zones_list):
+        """
+        Remapea los IDs de zona (1..N) devueltos por DARP (basados en self.agent_ids actual)
+        a los IDs originales (1..M) basados en self.original_agent_ids.
+        Esto preserva los colores en el nodo de visualización.
+        """
+        if not zones_list or not self.agent_ids:
+            return
+
+        # Crear mapa: {id_darp (1..N) -> id_original (1..M)}
+        # id_darp = i + 1, donde i es indice en self.agent_ids
+        # id_original = j + 1, donde j es indice en self.original_agent_ids
+        mapping = {}
+        for i, agent_id in enumerate(self.agent_ids):
+            if agent_id in self.original_agent_ids:
+                orig_idx = self.original_agent_ids.index(agent_id)
+                mapping[i + 1] = orig_idx + 1
+        
+        # Aplicar mapeo
+        for k in range(len(zones_list)):
+            val = zones_list[k]
+            if val > 0:  # Si es una zona asignada (no obstáculo -1, no libre 0)
+                if val in mapping:
+                    zones_list[k] = mapping[val]
+
     def apply_visited_to_zones_inplace(self, zones_list):
         if zones_list is None:
             return
@@ -339,6 +397,51 @@ class PlanningNode(Node):
         if self.zones_current is not None:
             self.apply_visited_to_zones_inplace(self.zones_current)
             self.publish_zones(self.zones_current)
+
+    def check_simulation_events(self):
+        if not self.sim_enabled or self.sim_start_time is None:
+            return
+
+        elapsed = (self.get_clock().now() - self.sim_start_time).nanoseconds / 1e9
+
+        for event in self.sim_events:
+            if not event["fired"] and elapsed >= event["time"]:
+                self.fire_event(event)
+                event["fired"] = True
+
+    def fire_event(self, event):
+        self.get_logger().info(f"Activando evento de simulacion: {event['type']} para el agente {event['agent']} a los {event['time']} segundos")
+        if event["type"] == "agent_failure":
+            self.handle_agent_failure(event["agent"])
+
+    def handle_agent_failure(self, agent_id):
+        if agent_id not in self.agent_ids:
+            return
+
+        self.get_logger().warn(f"El agente {agent_id} ha fallado. Replanificando...")
+
+        # 1. Agregar la posicion actual a los obstaculos estaticos
+        pos = self.positions.get(agent_id)
+        if pos:
+            cell = self.world_to_cell(pos.point.x, pos.point.y)
+            if cell is not None:
+                self.static_obstacle_cells.add(int(cell))
+                self.get_logger().info(f"Ubicacion del agente {agent_id} (celda {cell}) agregada a los obstaculos estaticos")
+
+        # 2. Eliminar del listado de agentes activos
+        self.agent_ids.remove(agent_id)
+
+        # 3. Publicar trayectoria vacía para detener el agente y limpiar visualización
+        empty_traj = Trajectory2D()
+        empty_traj.points = []
+        self.trajectory_publishers[agent_id].publish(empty_traj)
+        self.get_logger().info(f"Publicada trayectoria vacia para detener al agente {agent_id}")
+        self.trajectory_publishers.pop(agent_id)
+
+        # 4. Solicitar replanificación
+        if not self.plan_requested:
+            self.plan_requested = True
+            self.request_darp(include_visited_as_obstacles=True)
 
 def main(args=None):
     rclpy.init(args=args)

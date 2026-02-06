@@ -13,3 +13,8 @@
       # Posiciones de los obstáculos en metros
       obstacles_positions_x: [4.0, 4.0, 4.0, 4.0, -8.0, -8.0, -8.0, -8.0, -4.0, -2.0, 0.0, 2.0, 4.0]
       obstacles_positions_y: [2.0, 4.0, 6.0, 8.0, -4.0, -2.0, 0.0, 2.0, -4.0, -4.0, -4.0, -4.0, -4.0]
+    simulation:
+      enabled: true
+      events_types: ["agent_failure"]
+      events_times: [15.0]  # Seconds after mission start
+      events_agents: ["px4_2"]

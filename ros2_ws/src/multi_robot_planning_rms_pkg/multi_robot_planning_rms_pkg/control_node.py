@@ -105,11 +105,15 @@ class ControlNode(Node):
     def trajectory_callback(self, msg: Trajectory2D):
         self.trajectory_points = list(msg.points)
         self.current_index = 0
-        self.publish_remaining_trajectory()
 
-        self.get_logger().info(
-            f"{self.agent_id}: Nueva trayectoria recibida (len={len(self.trajectory_points)}). Reiniciando seguimiento"
-        )
+        if msg.points is not None and len(msg.points) > 0:
+            self.publish_remaining_trajectory()
+            self.get_logger().info(
+                f"{self.agent_id}: Nueva trayectoria recibida (len={len(self.trajectory_points)}). Reiniciando seguimiento"
+            )
+        else:
+            self.get_logger().warn(f"Trayectoria vacia para el agente {self.agent_id}")
+            self.remaining_traj_pub.publish(Trajectory2D())
 
     def publish_remaining_trajectory(self):
         if not self.trajectory_points:
