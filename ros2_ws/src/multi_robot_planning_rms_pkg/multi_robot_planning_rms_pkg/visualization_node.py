@@ -445,13 +445,13 @@ class VisualizationNode(Node):
         return self.colors[idx % len(self.colors)]
 
     def color_for_zone(self, zone_value: int, alpha: float) -> ColorRGBA:
-        # Si es visitado, asignar gris oscuro
-        if zone_value == 0:
-            return ColorRGBA(r=0.2, g=0.2, b=0.2, a=alpha)
-        # Si es obstáculo, asignar gris claro
+        # Si es visitado (-1), asignar gris claro
         if zone_value == -1:
-            return ColorRGBA(r=0.7, g=0.7, b=0.7, a=alpha)
-        # zone_value: 1..N => índice de agente zone_value-1
+            return ColorRGBA(r=0.8, g=0.8, b=0.8, a=alpha)
+        # Si es obstaculo (0), asignar gris oscuro
+        if zone_value == 0:
+            return ColorRGBA(r=0.1, g=0.1, b=0.1, a=alpha)
+        # zone_value: 1..N => indice de agente zone_value-1
         idx = max(0, int(zone_value) - 1)
         base = palette(alpha=alpha)[idx % len(self.colors)]
         c = ColorRGBA()

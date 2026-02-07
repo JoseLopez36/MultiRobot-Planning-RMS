@@ -70,7 +70,8 @@ class PlanningNode(Node):
         # Estado de mapa visitado: celdas ya cubiertas por cualquier agente
         self.visited_mask = set()  # set[int] de índices flat (row*cols+col)
         self.static_obstacle_cells = self.compute_static_obstacle_cells()
-        self.zones_current = None  # list[int] con visited forzado a 0
+        self.zones_current = None
+        self.zones_previous = None
         self.last_published_zones = None  # list[int]
 
         # QoS para trayectorias
@@ -341,7 +342,7 @@ class PlanningNode(Node):
         # Aplicar mapeo
         for k in range(len(zones_list)):
             val = zones_list[k]
-            if val > 0:  # Si es una zona asignada (no obstáculo -1, no libre 0)
+            if val > 0:  # Si es una zona asignada (no obstaculo 0, no visitado -1)
                 if val in mapping:
                     zones_list[k] = mapping[val]
 
@@ -352,10 +353,8 @@ class PlanningNode(Node):
             idx = int(cell)
             if idx < 0 or idx >= len(zones_list):
                 continue
-            # No sobreescribir obstáculos
-            if int(zones_list[idx]) == -1:
-                continue
-            zones_list[idx] = 0
+            # Marcar como visitado (-1)
+            zones_list[idx] = -1
 
     def publish_zones(self, zones_list):
         if zones_list is None:

@@ -30,5 +30,5 @@
     # Parámetros de visualización de zonas
     zones:
       cell_size: 2.0
-      fill_alpha: 0.05
-      outline_width: 0.025
+      fill_alpha: 0.075
+      outline_width: 0.01
