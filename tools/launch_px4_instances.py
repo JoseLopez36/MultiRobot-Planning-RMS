@@ -57,7 +57,7 @@ def cleanup_processes(processes):
                 print(f"Error terminating process {process.pid}: {e}")
     
     # Wait a bit for graceful shutdown
-    time.sleep(2)
+    time.sleep(1)
     
     # Force kill if still running
     for process in processes:
@@ -149,11 +149,8 @@ def main():
             process = subprocess.Popen(cmd, env=env, stdout=log, stderr=subprocess.STDOUT)
             px4_processes.append(process)
             print(f"  Instance {i}: PID {process.pid} at ({pose_str})")
-        
-        # Wait after first instance, shorter delay for others
-        time.sleep(10 if i == 1 else 2)
     
-    time.sleep(5)
+    time.sleep(1)
     
     # Launch MicroXRCEAgent if not running
     agent_process = None

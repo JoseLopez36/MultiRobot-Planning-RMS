@@ -144,12 +144,37 @@ class VisualizationNode(Node):
         self.setpoints[agent_id] = msg
 
     def trajectory_cb(self, msg: Trajectory2D, agent_id: str) -> None:
-        if msg.points is not None:
+        if msg.points and len(msg.points) > 0:
             pts = [(float(p.x), float(p.y)) for p in msg.points]
             markers = self.make_trajectory_markers(agent_id, pts)
             self.trajectory_markers_pub.publish(markers)
         else:
-            self.trajectory_markers_pub.publish(MarkerArray())
+            # Si la trayectoria esta vacia, enviamos Marcadores con accion DELETE para limpiar
+            self.get_logger().info(f"Limpiando trayectoria visual para el agente {agent_id}")
+            markers = self.make_empty_trajectory_markers(agent_id)
+            self.trajectory_markers_pub.publish(markers)
+
+    def make_empty_trajectory_markers(self, agent_id: str) -> MarkerArray:
+        now = self.get_clock().now().to_msg()
+        ns = f"trajectory/{agent_id}"
+        
+        line = Marker()
+        line.header.frame_id = "map"
+        line.header.stamp = now
+        line.ns = ns
+        line.id = 0
+        line.action = Marker.DELETE
+        
+        spheres = Marker()
+        spheres.header.frame_id = "map"
+        spheres.header.stamp = now
+        spheres.ns = ns
+        spheres.id = 1
+        spheres.action = Marker.DELETE
+        
+        out = MarkerArray()
+        out.markers = [line, spheres]
+        return out
 
     def zones_cb(self, msg: Int32MultiArray) -> None:
         rows, cols = self.grid_rows_cols(msg)

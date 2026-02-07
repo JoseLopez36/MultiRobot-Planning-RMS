@@ -72,6 +72,14 @@ Visualization Manager:
           Value: false
         px4_3/local:
           Value: false
+        px4_4/body:
+          Value: true
+        px4_4/local:
+          Value: true
+        px4_5/body:
+          Value: true
+        px4_5/local:
+          Value: true
       Marker Scale: 6
       Name: TF
       Show Arrows: false
@@ -89,6 +97,12 @@ Visualization Manager:
             px4_3/local:
               px4_3/body:
                 {}
+            px4_4/local:
+              px4_4/body:
+                {}
+            px4_5/local:
+              px4_5/body:
+                {}
       Update Interval: 0
       Value: true
     - Class: rviz_default_plugins/MarkerArray
@@ -98,6 +112,8 @@ Visualization Manager:
         drone/px4_1: true
         drone/px4_2: true
         drone/px4_3: true
+        drone/px4_4: true
+        drone/px4_5: true
       Topic:
         Depth: 5
         Durability Policy: Transient Local
@@ -112,6 +128,8 @@ Visualization Manager:
         trajectory/px4_1: true
         trajectory/px4_2: true
         trajectory/px4_3: true
+        trajectory/px4_4: true
+        trajectory/px4_5: true
       Topic:
         Depth: 5
         Durability Policy: Transient Local
@@ -186,7 +204,7 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 36.66423797607422
+      Scale: 22.4659481048584
       Target Frame: <Fixed Frame>
       Value: TopDownOrtho (rviz_default_plugins)
       X: 0.5793482661247253

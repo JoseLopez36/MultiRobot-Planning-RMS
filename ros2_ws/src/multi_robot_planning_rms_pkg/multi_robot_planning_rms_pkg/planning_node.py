@@ -232,7 +232,7 @@ class PlanningNode(Node):
             return
 
         if not response.trajectories:
-            self.get_logger().error("DARP devolvio trayectorias vacias")
+            self.get_logger().error("DARP devolvio trayectorias vacias. Manteniendo trayectorias anteriores...")
             self.plan_requested = False
             return
 
@@ -429,15 +429,18 @@ class PlanningNode(Node):
 
         # 2. Eliminar del listado de agentes activos
         self.agent_ids.remove(agent_id)
+        
+        # 3. Limpiar estado de posicion recibida para el agente fallido
+        if agent_id in self.position_received:
+            self.position_received.pop(agent_id)
 
-        # 3. Publicar trayectoria vacía para detener el agente y limpiar visualización
+        # 4. Publicar trayectoria vacía para detener el agente y limpiar visualización
         empty_traj = Trajectory2D()
         empty_traj.points = []
         self.trajectory_publishers[agent_id].publish(empty_traj)
         self.get_logger().info(f"Publicada trayectoria vacia para detener al agente {agent_id}")
-        self.trajectory_publishers.pop(agent_id)
 
-        # 4. Solicitar replanificación
+        # 5. Solicitar replanificación
         if not self.plan_requested:
             self.plan_requested = True
             self.request_darp(include_visited_as_obstacles=True)
