@@ -296,7 +296,7 @@ class DARP:
 
     def FinalUpdateOnMetricMatrix(self, CM, RM, currentOne, CC):
         MMnew = np.zeros((self.rows, self.cols))
-        MMnew = currentOne*CM*RM*CC
+        MMnew = np.clip(currentOne*CM*RM*CC, 1e-10, 1e10)
 
         return MMnew
 
