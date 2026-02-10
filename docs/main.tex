@@ -1,4 +1,4 @@
-\documentclass[runningheads]{llncs}
+\documentclass{llncs}
 
 \usepackage[T1]{fontenc}
 
@@ -124,15 +124,45 @@ Este último paso traduce el área asignada en un camino físico real que garant
 
 \section{Descripción del Sistema}
 \label{sec:sistema}
+
+El sistema propuesto se ha diseñado bajo una arquitectura modular y distribuida, aprovechando las capacidades de comunicación en tiempo real de \textit{ROS2 Humble}. Esta estructura permite la integración transparente entre los algoritmos de planificación de alto nivel y el control de bajo nivel de los vehículos aéreos no tripulados (UAVs).
+
 \subsection{Arquitectura de Software}
-% - Uso de ROS2 Humble
-% - Nodos implementados y comunicación
-% - Estructura del repositorio (mencionar brevemente Docker y herramientas)
+La implementación se basa en el \textit{middleware} \textit{ROS2 Humble}, organizando la lógica del sistema en nodos especializados que se comunican mediante tópicos y servicios. A continuación, se describen los componentes principales desarrollados en el paquete \texttt{multi\_robot\_planning\_rms\_pkg}:
+
+\begin{itemize}
+    \item \textbf{Nodo de planificación (\texttt{planning\_node.py}):} Actúa como el coordinador central del sistema. Este nodo gestiona el estado global de la misión, recopila las posiciones de todos los agentes y solicita la generación de trayectorias al servicio de planificación. Además, mantiene un registro de las celdas visitadas para permitir la replanificación dinámica en caso de ser necesaria.
+    
+    \item \textbf{Nodo DARP (\texttt{darp\_node.py}):} Implementa el algoritmo de división de áreas DARP. Funciona como un servidor de servicios que recibe las dimensiones del mapa, las posiciones iniciales de los robots y la ubicación de los obstáculos. Su función principal es discretizar el entorno en una rejilla, asignar una zona de trabajo exclusiva a cada agente y generar las trayectorias de cobertura óptimas.
+    
+    \item \textbf{Nodo de control (\texttt{control\_node.py}):} Responsable de la ejecución de las trayectorias. Se instancia un nodo de control por cada UAV en la flota. Implementa una máquina de estados finitos (INIT, TAKEOFF, MISSION) que gestiona el armado de motores, el despegue y el seguimiento de los puntos de la trayectoria. Interactúa directamente con el autopiloto enviando comandos de modo \textit{Offboard} y referencias de posición.
+    
+    \item \textbf{Nodo de transformaciones (\texttt{px4\_transform\_node.py}):} Este componente es crítico para la coherencia espacial del sistema multi-robot. Se encarga de homogeneizar los sistemas de coordenadas, transformando las posiciones locales NED (\textit{North-East-Down}) utilizadas por \textit{PX4} al sistema global ENU (\textit{East-North-Up}) empleado en \textit{ROS2}. Asimismo, gestiona la publicación de las transformaciones (TF) necesarias para referenciar a todos los agentes en un marco común.
+    
+    \item \textbf{Nodo de visualización (\texttt{visualization\_node.py}):} Procesa la información del sistema para generar marcadores visuales en \textit{RViz2}. Permite la representación gráfica en tiempo real de los drones, las trayectorias planificadas, las zonas asignadas a cada agente y el estado de la misión.
+\end{itemize}
+
+Para garantizar la reproducibilidad y facilitar el despliegue, todo el entorno de desarrollo se ha estruturado utilizando \textit{Docker}. La imagen generada integra \textit{ROS2 Humble}, \textit{Gazebo Garden}, las herramientas de desarrollo de \textit{PX4} y las librerías necesarias para el cálculo numérico y procesamiento de imágenes (\texttt{numpy}, \texttt{opencv}, \texttt{scipy}).
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.99\textwidth]{figures/SystemArchitecture.png}
+    \caption{Diagrama de la arquitectura de software y flujo de datos entre nodos \textit{ROS2} y \textit{PX4}.}
+    \label{fig:software_arch}
+\end{figure}
 
 \subsection{Plataforma de Simulación}
-% - PX4 Autopilot
-% - Gazebo Garden
-% - Modelos de robots utilizados
+La validación experimental se realiza en un entorno de simulación de alta fidelidad que integra la dinámica de vuelo real con un entorno físico 3D.
+
+\begin{itemize}
+    \item \textbf{Gazebo Garden:} Proporciona el motor de física y renderizado.
+
+    \item \textbf{PX4 Autopilot (v1.15.0):} Se utiliza como pila de vuelo (\textit{flight stack}) para el control y estabilización de los UAVs. Cada dron simulado ejecuta una instancia independiente de \textit{PX4}, lo que permite evaluar el comportamiento descentralizado de la flota.
+    
+    \item \textbf{Modelado de robots:} Se emplea el modelo \texttt{x500\_mod}, una variante del cuadricóptero estándar \textit{x500} equipada con sensores simulados. Los modelos se han adaptado para su correcta visualización y comportamiento dinámico dentro de \textit{Gazebo Garden}.
+    
+    \item \textbf{MicroXRCE-DDS:} La comunicación entre el autopiloto \textit{PX4} (que opera en tiempo real) y el sistema \textit{ROS2} se realiza a través del agente \textit{MicroXRCE-DDS}. Este puente permite la transmisión bidireccional de mensajes \textit{uORB}, facilitando el control \textit{offboard} y la telemetría de alta frecuencia.
+\end{itemize}
 
 \subsection{Interfaz Gráfica (HUD)}
 % - Características
