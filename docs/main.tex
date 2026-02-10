@@ -29,13 +29,12 @@ José Francisco López Ruiz}
 %
 \authorrunning{D.G. Burgos, H. Yang, J.A. García, J.M. Parejo, J.F. López}
 %
-\institute{Máster en Ingeniería Electrónica, Robótica y Automática \\
-Universidad de Sevilla, Sevilla, España}
+\institute{Máster en Ingeniería Electrónica, Robótica y Automática \\ Escuela Técnica Superior de Ingeniería, Universidad de Sevilla \\ Sevilla, España}
 %
 \maketitle
 %
 \begin{abstract}
-En este artículo se presenta el desarrollo e implementación de un sistema multi-robot para tareas de planificación de cobertura (Coverage Path Planning) y patrullaje de perímetro. El sistema utiliza el algoritmo DARP (Divide Areas Algorithm for Robotics Platforms) para la división eficiente del área de trabajo entre múltiples agentes, asegurando una cobertura completa y optimizada. Además, se propone una estrategia para la vigilancia de perímetros. La implementación se ha realizado sobre ROS2 (Robot Operating System 2), integrando el piloto automático PX4 y el simulador Gazebo para la validación de los algoritmos en entornos realistas. Se detallan la arquitectura del sistema, la metodología empleada y se presentan resultados de simulación que demuestran la viabilidad y eficacia de la solución propuesta.
+En este artículo se presenta el desarrollo e implementación de un sistema multi-robot para tareas de planificación de cobertura (\textit{Coverage Path Planning}) y patrullaje de perímetro. El sistema utiliza el algoritmo DARP (\textit{Divide Areas based on Robot's Initial Positions}) para la división eficiente del área de trabajo entre múltiples agentes, asegurando una cobertura completa y optimizada. Además, se propone una estrategia para la vigilancia de perímetros. La implementación se ha realizado sobre ROS2 (\textit{Robot Operating System 2}), integrando el piloto automático PX4 y el simulador \textit{Gazebo} para la validación de los algoritmos en entornos realistas. Se detallan la arquitectura del sistema, la metodología empleada y se presentan resultados de simulación que demuestran la viabilidad y eficacia de la solución propuesta.
 
 \keywords{Planificación de cobertura \and Sistemas multi-robot \and ROS2 \and PX4 \and DARP \and Patrullaje de perímetro \and Simulación.}
 \end{abstract}
@@ -43,9 +42,34 @@ En este artículo se presenta el desarrollo e implementación de un sistema mult
 \section{Introducción}
 \label{sec:introduccion}
 % - Contexto de la robótica móvil y sistemas multi-robot
+La robótica móvil ha experimentado un crecimiento notable en las últimas décadas debido a su aplicación en tareas como inspección, vigilancia, agricultura de precisión, logística o búsqueda y rescate. En muchos de estos ámbitos, el uso de sistemas multi-robot aporta ventajas significativas frente a soluciones basadas en un único agente, permitiendo reducir tiempos de operación, aumentar la redundancia y mejorar la eficiencia global de las misiones gracias a la distribución del trabajo y la cooperación entre robots.
+
+Esta disciplina, ha pasado de ser, en las últimas décadas, una disciplina académica y de laboratorio, a convertirse en una herramienta imprescindible en entornos críticos. Con la transición de sistemas individuales a sistemas multi-robot (\textit{Multi-Robot Systems} o \textit{MRS}) es posible abordar problemas complejos que serían imposibles con agentes individuales. Esta transición a sistemas multi-robot representa un importante cambio cualitativo en la capacidad de ejecutar tareas de forma colaborativa.
+Frente a sistemas con un único agente, los sistemas con múltiples robots permiten la ejecución de tareas en paralelo y tareas colaborativas, reduciendo de esta forma el tiempo de operación y aumentando la resiliencia del sistema al minimizar el impacto de fallos individuales.
+
+Existen múltiples factores que han facilitado e impulsado el desarrollo de los RMS y su implementación en la industria, entre ellos destacan:
+\begin{itemize}
+    \item \textbf{Coste y miniaturización.} La reducción de coste de sensores (LIDAR, cámaras de profundidad, etc), 
+\end{itemize}
 % - Importancia del Coverage Path Planning (CPP) y patrullaje
+Dentro de este marco, uno de los problemas más estudiados es el \textit{Coverage Path Planning} (CPP), que consiste en generar trayectorias que permitan a un conjunto de robots cubrir completamente una región del entorno. Este problema es fundamental para operaciones como mapeo, limpieza de superficies, fumigación aérea o reconocimiento de áreas extensas. En paralelo, los sistemas multi-robot también se emplean con frecuencia en tareas de patrullaje, donde el objetivo no es cubrir una superficie completa una única vez, sino asegurar visitas periódicas a zonas críticas, como perímetros de instalaciones o áreas restringidas.
+
+
+A pesar de los avances existentes, la coordinación de múltiples agentes en estos contextos sigue presentando desafíos importantes. Entre ellos destacan la necesidad de distribuir el área de trabajo de forma equilibrada, evitar solapamientos, minimizar tiempos muertos y garantizar la robustez ante fallos o cambios en el entorno. En este contexto, los algoritmos basados en partición del espacio, como \textbf{DARP} (\textit{Divide Areas based on Robot's Initial Positions}), han surgido como una solución eficaz para abordar el problema de cobertura equitativa en entornos discretizados, proporcionando regiones contiguas y balanceadas para cada robot.
+
 % - Objetivos del proyecto
+Este trabajo presenta el desarrollo e implementación de un sistema multi-robot que integra un método de cobertura de área basado en DARP junto con una estrategia de patrullaje de perímetro diseñada para garantizar vigilancia continua. La implementación se ha llevado a cabo sobre el \textit{framework} ROS2, utilizando el autopiloto de PX4 para la ejecución de control y el simulador \textit{Gazebo} para validar los algoritmos en un entorno realista y reproducible. La arquitectura propuesta permite evaluar tanto la coordinación entre agentes como el desempeño de los algoritmos en condiciones cercanas a escenarios reales.
+
+
+Los principales objetivos de este proyecto son:
+\begin{itemize}
+    \item Desarrollar e integrar algoritmos de cobertura y patrullaje para flotas de robots autónomos. 
+    \item Implementar una infraestructura modular basada en ROS2 que permita su ejecución en simulación y, potencialmente, en plataformas reales.
+    \item Validar la eficacia de la solución mediante experimentos controlados en simulación, analizando métricas como tiempo de cobertura, distribución de carga y comportamiento en patrullaje.
+\end{itemize}
+
 % - Estructura del paper
+El resto del artículo se estructura de la siguiente manera: en la Sección \ref{sec:estado_arte} se revisan los principales trabajos relacionados con planificación de cobertura y patrullaje en sistemas multi-robot; en la Sección \ref{sec:algoritmos} se describen los algoritmos utilizados para la partición del área y la vigilancia del perímetro; en la Sección \ref{sec:sistema} se detalla la arquitectura del sistema, la plataforma de simulación y la interfaz desarrollada; en la Sección \ref{sec:resultados} se presentan los experimentos realizados junto con los resultados obtenidos; finalmente, la Sección \ref{sec:conclusiones} recoge las conclusiones y líneas de trabajo futuro.
 
 \section{Estado del Arte}
 \label{sec:estado_arte}
@@ -58,10 +82,44 @@ En este artículo se presenta el desarrollo e implementación de un sistema mult
 \label{sec:algoritmos}
 \subsection{Cobertura de Área con DARP}
 % - Descripción del algoritmo DARP
+El algoritmo \textbf{DARP} (\textit{Divide Areas based on Robot's Initial Positions}) es un proceso iterativo de optimización. Su objetivo es transformar una disposición inicial de robots en una planificación de rutas equilibrada y eficiente.
+
+El proceso comienza con un mapa discretizado en una rejilla $\mathcal{G}$ de $N$ celdas. Se identifican las posiciones iniciales de los $k$ robots $S_i$ y se establece una cuota de celdas objetivo $T_i$ para cada uno. Esta cuota representa la cantidad de terreno que cada robot debe cubrir idealmente (por ejemplo, si todos los UAV son iguales, $T_i = N/k$). En este punto, se inicializan los multiplicadores de peso para todos los robots ($m_i = 1$). Estos multiplicadores actuarán como variables de ajuste que permitirán negociar las fronteras de cada territorio en los pasos siguientes.
+
+Con los pesos iniciales, el algoritmo realiza su primera repartición. Cada celda $c$ de la rejilla se asigna al robot que resulte "más atractivo" según una métrica de proximidad ponderada. La decisión se toma mediante la siguiente función:
+
+$$A(c) = \arg\min_{i \in \{1,\dots,k\}} \left\{ \frac{m_i}{C_i(c)} \cdot \text{dist}(c, S_i) \right\}$$
+
+En esta fase, la distancia física $\text{dist}(c, S_i)$ se ve modificada por el peso $m_i$. Si un UAV tiene un peso alto, la distancia percibida hacia las celdas aumenta, lo que provoca que pierda territorio frente a otros.
+
+
+Una vez que todas las celdas han sido asignadas, el algoritmo cuenta cuántas celdas tiene realmente cada robot ($K_i$) y calcula el error respecto a la meta original mediante una función de costo cuadrática:
+
+$$J(\mathbf{m}) = \frac{1}{2} \sum_{i=1}^k \left( K_i(\mathbf{m}) - T_i \right)^2$$
+
+Para minimizar este error, el sistema ajusta los pesos $m_i$ para la siguiente iteración utilizando descenso de coordenadas cíclico:
+
+$$m_i^{(t+1)} = m_i^{(t)} + \eta \cdot \frac{K_i^{(t)} - T_i}{T_i}$$
+
+Si un robot ha acaparado demasiado terreno ($K_i > T_i$), su multiplicador $m_i$ crece, lo que le obligará a ceder celdas en la siguiente asignación.
+
+Durante el ajuste de pesos, es posible que el área de un robot se fragmente. Para evitar que tenga que saltar sobre el territorio de otro, se activa la \textbf{matriz de conectividad} $C_i(c)$, con lo que se verifica si existen celdas aisladas. Si existe una celda asignada al robot $i$ sin camino continuo hacia su origen $S_i$ dentro de su zona, el valor de $C_i(c)$ en esa celda se reduce. Al volver a asignar celdas, la división por un valor de $C_i$ pequeño aumenta el costo de esta para ese robot, forzando su reasignación a un vecino que sí tenga acceso físico a ella.
+
+El ciclo de los pasos de asignación, optimización y corrección espacial se repite hasta que el error $J(\mathbf{m})$ es despreciable y las áreas son estables. Una vez obtenida la partición final $\{A_1, \dots, A_k\}$, el problema de reparto de áreas se da por concluido.
+
+Para finalizar, cada robot ejecuta de forma independiente el algoritmo \textbf{Spanning Tree Coverage (STC)} dentro de su sub-área asignada:
+
+$$\text{Trayectoria}_i = \text{STC}(A_i, S_i)$$
+
+Este último paso traduce el área asignada en un camino físico real que garantiza una cobertura del 100\% sin solapamientos ni retrocesos, completando así la misión multi-robot de forma óptima.
+
+
 % - Adaptaciones realizadas
+
 
 \subsection{Patrullaje de Perímetro}
 % - Descripción del algoritmo de patrullaje
+
 % - Lógica de funcionamiento
 
 \section{Descripción del Sistema}
