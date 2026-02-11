@@ -74,7 +74,7 @@ RUN useradd --shell /bin/bash -u 1000 -c "" -m user && usermod -a -G dialout use
 
 
 # Some QT-Apps/Gazebo don't not show controls without this
-ENV QT_X11_NO_MITSHM 1
+ENV QT_X11_NO_MITSHM=1
 
 # Use UTF8 encoding in java tools (needed to compile jMAVSim)
 ENV JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF8
@@ -104,6 +104,8 @@ RUN apt remove -y ros-humble-ros-gz-bridge
 #
 # Build ros-humble-ros-gz-bridge from source
 #
+USER root
+RUN rosdep init || true
 USER user
 WORKDIR /home/user
 RUN rosdep update
