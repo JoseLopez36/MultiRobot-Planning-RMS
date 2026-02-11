@@ -4,6 +4,7 @@ int32 min_y
 int32 max_y
 vision_msgs/Point2D[] initial_positions
 vision_msgs/Point2D[] obstacle_points
+vision_msgs/Point2D[] traversed_points
 bool visualization
 ---
 multi_robot_planning_rms_msgs/Trajectory2D[] trajectories
