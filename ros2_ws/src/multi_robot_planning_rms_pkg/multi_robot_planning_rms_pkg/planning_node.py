@@ -258,17 +258,21 @@ class PlanningNode(Node):
         if response.zones:
             # Remapear zonas: DARP devuelve indices 1..N de la lista ACTIVA
             # Visualizacion espera indices 1..M de la lista ORIGINAL
-            remapped_zones = []
-            for val in response.zones:
-                if val > 0 and (val - 1) < len(self.agent_ids):
-                    agent_id = self.agent_ids[val - 1]
-                    if agent_id in self.original_agent_ids:
-                        # +1 porque los indices de zona son 1-based
-                        remapped_zones.append(self.original_agent_ids.index(agent_id) + 1)
-                    else:
-                        remapped_zones.append(val)
+            
+            # Crear tabla de mapeo para eficiencia O(1) en el bucle
+            zone_map = {0: 0}  # 0 es obstaculo/vacio
+            
+            for i, agent_id in enumerate(self.agent_ids):
+                current_idx = i + 1  # Indice 1-based que devuelve DARP
+                if agent_id in self.original_agent_ids:
+                    # Mapear al indice original 1-based
+                    original_idx = self.original_agent_ids.index(agent_id) + 1
+                    zone_map[current_idx] = original_idx
                 else:
-                    remapped_zones.append(val)
+                    zone_map[current_idx] = current_idx
+            
+            # Aplicar mapeo vectorizado (mucho mas rapido que buscar en cada iteracion)
+            remapped_zones = [zone_map.get(val, val) for val in response.zones]
             
             # Guardar la base de zonas para el timer de visualización
             self.last_remapped_zones = remapped_zones

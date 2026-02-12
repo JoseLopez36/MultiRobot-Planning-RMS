@@ -112,26 +112,71 @@ Visualization Manager:
         drone/px4_4: true
         drone/px4_5: true
       Topic:
-        Depth: 5
-        Durability Policy: Transient Local
+        Depth: 1
+        Durability Policy: Volatile
         History Policy: Keep Last
         Reliability Policy: Best Effort
         Value: /visualization/drones
       Value: true
     - Class: rviz_default_plugins/MarkerArray
       Enabled: true
-      Name: Trajectories
+      Name: Trajectory px4_1
       Namespaces:
-        trajectory/px4_1: true
-        trajectory/px4_2: true
-        trajectory/px4_3: true
-        trajectory/px4_5: true
+        {}
       Topic:
         Depth: 1
-        Durability Policy: Transient Local
+        Durability Policy: Volatile
         History Policy: Keep Last
         Reliability Policy: Best Effort
-        Value: /visualization/trajectories
+        Value: /visualization/trajectory/px4_1
+      Value: true
+    - Class: rviz_default_plugins/MarkerArray
+      Enabled: true
+      Name: Trajectory px4_2
+      Namespaces:
+        {}
+      Topic:
+        Depth: 1
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Best Effort
+        Value: /visualization/trajectory/px4_2
+      Value: true
+    - Class: rviz_default_plugins/MarkerArray
+      Enabled: true
+      Name: Trajectory px4_3
+      Namespaces:
+        {}
+      Topic:
+        Depth: 1
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Best Effort
+        Value: /visualization/trajectory/px4_3
+      Value: true
+    - Class: rviz_default_plugins/MarkerArray
+      Enabled: true
+      Name: Trajectory px4_4
+      Namespaces:
+        {}
+      Topic:
+        Depth: 1
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Best Effort
+        Value: /visualization/trajectory/px4_4
+      Value: true
+    - Class: rviz_default_plugins/MarkerArray
+      Enabled: true
+      Name: Trajectory px4_5
+      Namespaces:
+        {}
+      Topic:
+        Depth: 1
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Best Effort
+        Value: /visualization/trajectory/px4_5
       Value: true
     - Class: rviz_default_plugins/MarkerArray
       Enabled: true
@@ -140,7 +185,7 @@ Visualization Manager:
         {}
       Topic:
         Depth: 1
-        Durability Policy: Transient Local
+        Durability Policy: Volatile
         History Policy: Keep Last
         Reliability Policy: Best Effort
         Value: /visualization/zones

@@ -75,7 +75,7 @@ class VisualizationNode(Node):
         # QoS para zonas
         zones_qos = QoSProfile(
             reliability=ReliabilityPolicy.RELIABLE,
-            durability=DurabilityPolicy.TRANSIENT_LOCAL,
+            durability=DurabilityPolicy.VOLATILE,
             history=HistoryPolicy.KEEP_LAST,
             depth=1,
         )
@@ -83,15 +83,23 @@ class VisualizationNode(Node):
         # QoS para marcadores
         marker_qos = QoSProfile(
             reliability=ReliabilityPolicy.BEST_EFFORT,
-            durability=DurabilityPolicy.TRANSIENT_LOCAL,
+            durability=DurabilityPolicy.VOLATILE,
             history=HistoryPolicy.KEEP_LAST,
-            depth=10,
+            depth=1,
         )
 
         # Publicador de marcadores
         self.drone_markers_pub = self.create_publisher(MarkerArray, "/visualization/drones", marker_qos)
-        self.trajectory_markers_pub = self.create_publisher(MarkerArray, "/visualization/trajectories", marker_qos)
         self.zones_markers_pub = self.create_publisher(MarkerArray, "/visualization/zones", marker_qos)
+
+        # Publicadores de trayectorias individuales por agente
+        self.trajectory_pubs: Dict[str, rclpy.publisher.Publisher] = {}
+        for agent_id in self.agent_ids:
+            self.trajectory_pubs[agent_id] = self.create_publisher(
+                MarkerArray, 
+                f"/visualization/trajectory/{agent_id}", 
+                marker_qos
+            )
 
         # Suscriptores de posiciones y setpoints
         self.positions: Dict[str, Optional[PointStamped]] = {aid: None for aid in self.agent_ids}
@@ -144,15 +152,18 @@ class VisualizationNode(Node):
         self.setpoints[agent_id] = msg
 
     def trajectory_cb(self, msg: Trajectory2D, agent_id: str) -> None:
+        if agent_id not in self.trajectory_pubs:
+            return
+
         if msg.valid:
             pts = [(float(p.x), float(p.y)) for p in msg.points]
             markers = self.make_trajectory_markers(agent_id, pts)
-            self.trajectory_markers_pub.publish(markers)
+            self.trajectory_pubs[agent_id].publish(markers)
         else:
             # Si la trayectoria esta vacia, enviamos Marcadores con accion DELETE para limpiar
             self.get_logger().info(f"Limpiando trayectoria visual para el agente {agent_id}")
             markers = self.make_empty_trajectory_markers(agent_id)
-            self.trajectory_markers_pub.publish(markers)
+            self.trajectory_pubs[agent_id].publish(markers)
 
     def make_empty_trajectory_markers(self, agent_id: str) -> MarkerArray:
         now = self.get_clock().now().to_msg()
