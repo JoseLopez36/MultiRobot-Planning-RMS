@@ -36,7 +36,7 @@ git clone https://github.com/JoseLopez36/MultiRobot-Planning-RMS.git
 ### 4. Clonar y compilar este repositorio dentro del contenedor
 Una vez en el contenedor:
 ```bash
-# Preparar el volumen compartido
+# Preparar el volumen compartido (contraseña: user)
 sudo chown -R user:user ~/shared_volume
 cd ~/shared_volume
 

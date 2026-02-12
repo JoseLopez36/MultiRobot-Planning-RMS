@@ -165,10 +165,10 @@ class PlanningNode(Node):
             return
 
         self.plan_requested = True
-        self.request_darp(include_visited_as_obstacles=False)
+        self.request_darp(include_visited=False)
 
-    def request_darp(self, include_visited_as_obstacles: bool):
-        if include_visited_as_obstacles:
+    def request_darp(self, include_visited: bool):
+        if include_visited:
             self.get_logger().info("Peticion de algoritmo DARP (replanning con visited)...")
         else:
             self.get_logger().info("Peticion de algoritmo DARP (planificacion inicial)...")
@@ -196,8 +196,8 @@ class PlanningNode(Node):
             p.y = float(pos.point.y)
             req.initial_positions.append(p)
 
-        # Celdas visitadas como obstáculos (solo para replanning)
-        if include_visited_as_obstacles:
+        # Celdas visitadas como puntos recorridos (solo para replanning)
+        if include_visited:
             start_cells = set()
             for agent_id in self.agent_ids:
                 pos = self.positions.get(agent_id)
@@ -218,7 +218,7 @@ class PlanningNode(Node):
                 p = Point2D()
                 p.x = float(pt[0])
                 p.y = float(pt[1])
-                req.obstacle_points.append(p)
+                req.traversed_points.append(p)
 
         future = self.darp_client.call_async(req)
         future.add_done_callback(self.darp_callback)
@@ -281,7 +281,7 @@ class PlanningNode(Node):
 
         self.plan_requested = True
         self.get_logger().info("Replan solicitado: llamando a DARP con visited como obstáculos")
-        self.request_darp(include_visited_as_obstacles=True)
+        self.request_darp(include_visited=True)
         response.success = True
         response.message = "Replan solicitado"
         return response
@@ -443,7 +443,7 @@ class PlanningNode(Node):
         # 5. Solicitar replanificación
         if not self.plan_requested:
             self.plan_requested = True
-            self.request_darp(include_visited_as_obstacles=True)
+            self.request_darp(include_visited=True)
 
 def main(args=None):
     rclpy.init(args=args)

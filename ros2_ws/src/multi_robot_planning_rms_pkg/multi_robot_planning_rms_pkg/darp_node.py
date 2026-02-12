@@ -48,7 +48,7 @@ class DarpNode(Node):
             request.traversed_points,
             request.min_x,
             request.min_y,
-            request.max_y,
+            rows,
             cols
         )
 
@@ -166,25 +166,29 @@ class DarpNode(Node):
             all_trajectories,
             grid_zones,
             request.min_x,
-            request.max_y
+            request.min_y
         )
 
         self.get_logger().info("Petición procesada exitosamente")
         return response
 
     def process_darp_input(self, initial_positions_msg, obstacle_points_msg,
-                          traversed_points_msg, min_x, min_y, max_y, cols):
+                          traversed_points_msg, min_x, min_y, rows, cols):
         """Convierte puntos Point2D (coordenadas del mundo) a índices de celda para DARP"""
 
         # Convertir posiciones iniciales de robots
         initial_positions = []
         for point in initial_positions_msg:
-            x = int(point.x)
-            y = int(point.y)
+            x = float(point.x)
+            y = float(point.y)
 
             # Trasladar coordenadas al origen del grid
-            grid_x = x - min_x
-            grid_y = max_y - y  # Corregido: Y crece hacia arriba, filas hacia abajo
+            grid_x = int(math.floor((x - float(min_x)) / self.cell_size))
+            grid_y = int(math.floor((y - float(min_y)) / self.cell_size))
+
+            # Asegurar que las coordenadas estén dentro del grid
+            grid_x = max(0, min(cols - 1, grid_x))
+            grid_y = max(0, min(rows - 1, grid_y))
 
             # Convertir a índice de celda
             cell = grid_y * cols + grid_x
@@ -193,11 +197,16 @@ class DarpNode(Node):
         # Convertir posiciones de obstáculos
         obstacles_positions = []
         for point in obstacle_points_msg:
-            x = int(point.x)
-            y = int(point.y)
+            x = float(point.x)
+            y = float(point.y)
 
-            grid_x = x - min_x
-            grid_y = max_y - y
+            # Trasladar coordenadas al origen del grid
+            grid_x = int(math.floor((x - float(min_x)) / self.cell_size))
+            grid_y = int(math.floor((y - float(min_y)) / self.cell_size))
+
+            # Asegurar que las coordenadas estén dentro del grid
+            grid_x = max(0, min(cols - 1, grid_x))
+            grid_y = max(0, min(rows - 1, grid_y))
 
             cell = grid_y * cols + grid_x
             obstacles_positions.append(cell)
@@ -205,11 +214,16 @@ class DarpNode(Node):
         # Convertir posiciones de trayectoria recorrida
         traversed_positions = []
         for point in traversed_points_msg:
-            x = int(point.x)
-            y = int(point.y)
+            x = float(point.x)
+            y = float(point.y)
 
-            grid_x = x - min_x
-            grid_y = max_y - y
+            # Trasladar coordenadas al origen del grid
+            grid_x = int(math.floor((x - float(min_x)) / self.cell_size))
+            grid_y = int(math.floor((y - float(min_y)) / self.cell_size))
+
+            # Asegurar que las coordenadas estén dentro del grid
+            grid_x = max(0, min(cols - 1, grid_x))
+            grid_y = max(0, min(rows - 1, grid_y))
 
             cell = grid_y * cols + grid_x
             traversed_positions.append(cell)
@@ -491,7 +505,7 @@ class DarpNode(Node):
 
         return best_entry
 
-    def process_darp_output(self, todas_las_trayectorias, matriz_zonas, min_x, max_y):
+    def process_darp_output(self, todas_las_trayectorias, matriz_zonas, min_x, min_y):
         """Convierte trayectorias y matriz de zonas combinadas a mensajes ROS2."""
         trajectories = []
 
@@ -504,15 +518,15 @@ class DarpNode(Node):
                 # Punto inicial
                 first_move = path[0]
                 p = Point2D()
-                p.x = float(first_move[1] + min_x)  # col_from + offset_x
-                p.y = float(max_y - first_move[0])  # y = max_y - row_from
+                p.x = float(float(min_x) + (float(first_move[1]) + 0.5) * subcell_size)
+                p.y = float(float(min_y) + (float(first_move[0]) + 0.5) * subcell_size)
                 traj.points.append(p)
 
                 # Puntos siguientes
                 for move in path:
                     p = Point2D()
-                    p.x = float(move[3] + min_x)  # col_to + offset_x
-                    p.y = float(max_y - move[2])  # y = max_y - row_to
+                    p.x = float(float(min_x) + (float(move[3]) + 0.5) * subcell_size)
+                    p.y = float(float(min_y) + (float(move[2]) + 0.5) * subcell_size)
                     traj.points.append(p)
 
             trajectories.append(traj)
