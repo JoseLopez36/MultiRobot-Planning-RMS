@@ -16,5 +16,5 @@
     simulation:
       enabled: true
       events_types: ["agent_failure", "agent_failure"]
-      events_times: [45.0, 55.0]  # Seconds after mission start
+      events_times: [25.0, 45.0]  # Seconds after mission start
       events_agents: ["px4_2", "px4_3"]
