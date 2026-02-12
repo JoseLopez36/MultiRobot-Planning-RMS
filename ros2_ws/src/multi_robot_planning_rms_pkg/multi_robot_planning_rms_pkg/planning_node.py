@@ -64,12 +64,15 @@ class PlanningNode(Node):
             self.sim_timer = self.create_timer(1.0, self.check_simulation_events)
             self.get_logger().info(f"Modo de simulacion activado con {len(self.sim_events)} eventos")
 
+        self.last_remapped_zones = []  # Almacenar zonas base para visualización continua
+
         # Grid (cache)
         self.rows, self.cols = self.compute_rows_cols()
-
-        # Posiciones ya visitadas por cualquier agente
         self.traversed_positions = []
-        self.visited_cells = set()  # Conjunto para búsqueda rápida de celdas visitadas (grid_x, grid_y)
+        self.visited_cells = set()
+
+        # Timer para visualización constante de zonas y visitados
+        self.vis_timer = self.create_timer(self.visited_update_period, self.publish_visualization_state)
 
         # QoS para trayectorias
         trajectory_qos = QoSProfile(
@@ -251,9 +254,26 @@ class PlanningNode(Node):
             f"Solucion DARP recibida con {len(response.trajectories)} trayectorias"
         )
 
-        # Cachear y publicar zones para visualización (visited = 0)
+        # Cachear y procesar zones para visualización
         if response.zones:
-            self.publish_zones(response.zones)
+            # Remapear zonas: DARP devuelve indices 1..N de la lista ACTIVA
+            # Visualizacion espera indices 1..M de la lista ORIGINAL
+            remapped_zones = []
+            for val in response.zones:
+                if val > 0 and (val - 1) < len(self.agent_ids):
+                    agent_id = self.agent_ids[val - 1]
+                    if agent_id in self.original_agent_ids:
+                        # +1 porque los indices de zona son 1-based
+                        remapped_zones.append(self.original_agent_ids.index(agent_id) + 1)
+                    else:
+                        remapped_zones.append(val)
+                else:
+                    remapped_zones.append(val)
+            
+            # Guardar la base de zonas para el timer de visualización
+            self.last_remapped_zones = remapped_zones
+            # Forzar actualización inmediata
+            self.publish_visualization_state()
 
         # Publicar trayectorias por agente basado en el orden de indices
         for i, traj in enumerate(response.trajectories):
@@ -276,6 +296,31 @@ class PlanningNode(Node):
         if self.sim_enabled and self.sim_start_time is None:
             self.sim_start_time = self.get_clock().now()
             self.get_logger().info("Temporizador de simulacion iniciado")
+
+    def publish_visualization_state(self):
+        """Publica el estado actual de zonas y celdas visitadas."""
+        # Si no hay zonas calculadas, usar ceros (todo obstáculo/desconocido)
+        if not self.last_remapped_zones:
+            if self.rows > 0 and self.cols > 0:
+                current_zones = [0] * (self.rows * self.cols)
+            else:
+                return
+        else:
+            current_zones = list(self.last_remapped_zones)
+
+        # Superponer celdas visitadas para visualización (color gris claro, valor -1)
+        if self.cell_size > 0:
+            for x, y in self.traversed_positions:
+                grid_x = int((x - self.min_x) / self.cell_size)
+                grid_y = int((y - self.min_y) / self.cell_size)
+                
+                # Verificar límites antes de calcular índice lineal
+                if 0 <= grid_x < self.cols and 0 <= grid_y < self.rows:
+                    idx = grid_y * self.cols + grid_x
+                    if 0 <= idx < len(current_zones):
+                        current_zones[idx] = -1
+
+        self.publish_zones(current_zones)
 
     def replan_callback(self, request, response):
         if self.plan_requested:
