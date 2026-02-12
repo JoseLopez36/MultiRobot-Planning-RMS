@@ -285,6 +285,7 @@ class PlanningNode(Node):
             agent_id = self.agent_ids[i]
             msg = Trajectory2D()
             msg.points = traj.points
+            msg.valid = True
             self.trajectory_publishers[agent_id].publish(msg)
             self.get_logger().info(
                 f"Publicada trayectoria (len={len(msg.points)}) en /{agent_id}/planning/trajectory"
@@ -389,7 +390,7 @@ class PlanningNode(Node):
 
         # 3. Publicar trayectoria vacía para detener el agente y limpiar visualización
         empty_traj = Trajectory2D()
-        empty_traj.points = []
+        empty_traj.valid = False
         self.trajectory_publishers[agent_id].publish(empty_traj)
         self.get_logger().info(f"Publicada trayectoria vacia para detener al agente {agent_id}")
 

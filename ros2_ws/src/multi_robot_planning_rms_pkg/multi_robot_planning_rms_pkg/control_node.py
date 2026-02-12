@@ -106,14 +106,16 @@ class ControlNode(Node):
         self.trajectory_points = list(msg.points)
         self.current_index = 0
 
-        if msg.points is not None and len(msg.points) > 0:
+        if msg.valid:
             self.publish_remaining_trajectory()
             self.get_logger().info(
                 f"{self.agent_id}: Nueva trayectoria recibida (len={len(self.trajectory_points)}). Reiniciando seguimiento"
             )
         else:
             self.get_logger().warn(f"Trayectoria vacia para el agente {self.agent_id}")
-            self.remaining_traj_pub.publish(Trajectory2D())
+            out = Trajectory2D()
+            out.valid = False
+            self.remaining_traj_pub.publish(out)
 
     def publish_remaining_trajectory(self):
         if not self.trajectory_points:
@@ -125,6 +127,7 @@ class ControlNode(Node):
             Point2D(x=float(p.x), y=float(p.y))
             for p in self.trajectory_points[start:]
         ]
+        out.valid = True
         self.remaining_traj_pub.publish(out)
 
     def get_px4_system_id(self, agent_id: str) -> int:
